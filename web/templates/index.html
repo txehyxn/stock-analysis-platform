@@ -828,6 +828,8 @@
                 </div>
             </div>
 
+        </div>
+
         <!-- ========================================== -->
         <!-- VIEW 3: [⭐ 내 관심 종목 대시보드 뷰] -->
         <!-- ========================================== -->
@@ -1266,8 +1268,11 @@
                 }
             }
 
-            if (currentMainTab === 'favorites') {
+            if (currentUser) {
                 loadFavoritesData();
+            } else {
+                const tabBadge = document.getElementById('fav-tab-count-badge');
+                if (tabBadge) tabBadge.classList.add('hidden');
             }
         }
 
@@ -1452,9 +1457,7 @@
                 }
                 const data = await resp.json();
                 updateFavoriteStarUI(data.is_favorite);
-                if (currentMainTab === 'favorites') {
-                    loadFavoritesData();
-                }
+                loadFavoritesData();
             } catch (err) {
                 console.error('별표 찜 토글 실패:', err);
             }
