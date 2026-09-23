@@ -1082,6 +1082,76 @@
         }
 
         // ====================================================
+        // 다크 / 라이트 테마 토글 및 차트 연동
+        // ====================================================
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            applyTheme(savedTheme);
+        }
+
+        function toggleTheme() {
+            const isLight = document.documentElement.classList.contains('light') || document.body.classList.contains('light-theme');
+            const nextTheme = isLight ? 'dark' : 'light';
+            applyTheme(nextTheme);
+        }
+
+        function applyTheme(theme) {
+            localStorage.setItem('theme', theme);
+            const themeBtn = document.getElementById('theme-toggle-btn');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            if (theme === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+                document.body.classList.add('light-theme');
+                if (themeIcon) themeIcon.className = 'fa-solid fa-moon text-indigo-500 text-xs';
+                if (themeText) themeText.innerText = '다크';
+                if (themeBtn) {
+                    themeBtn.innerHTML = '<i id="theme-icon" class="fa-solid fa-moon text-indigo-500 text-xs"></i><span id="theme-text" class="whitespace-nowrap">다크</span>';
+                    themeBtn.title = '다크 모드로 전환';
+                }
+            } else {
+                document.documentElement.classList.remove('light');
+                document.documentElement.classList.add('dark');
+                document.body.classList.remove('light-theme');
+                if (themeIcon) themeIcon.className = 'fa-solid fa-sun text-amber-400 text-xs';
+                if (themeText) themeText.innerText = '라이트';
+                if (themeBtn) {
+                    themeBtn.innerHTML = '<i id="theme-icon" class="fa-solid fa-sun text-amber-400 text-xs"></i><span id="theme-text" class="whitespace-nowrap">라이트</span>';
+                    themeBtn.title = '라이트 모드로 전환';
+                }
+            }
+            // 차트가 생성되어 있다면 차트 그리드 색상 갱신
+            if (stockChart && typeof updateChartTheme === 'function') {
+                updateChartTheme(theme);
+            }
+        }
+
+        function updateChartTheme(theme) {
+            if (!stockChart) return;
+            const isLight = (theme === 'light');
+            const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.04)';
+            const tickColor = isLight ? '#64748b' : '#94a3b8';
+            
+            if (stockChart.options && stockChart.options.scales) {
+                if (stockChart.options.scales.x) {
+                    if (stockChart.options.scales.x.grid) stockChart.options.scales.x.grid.color = gridColor;
+                    if (stockChart.options.scales.x.ticks) stockChart.options.scales.x.ticks.color = tickColor;
+                }
+                if (stockChart.options.scales.y) {
+                    if (stockChart.options.scales.y.grid) stockChart.options.scales.y.grid.color = gridColor;
+                    if (stockChart.options.scales.y.ticks) stockChart.options.scales.y.ticks.color = tickColor;
+                }
+            }
+            stockChart.update('none');
+        }
+
+        function applyChartTheme(isLight) {
+            updateChartTheme(isLight ? 'light' : 'dark');
+        }
+
+        // ====================================================
         // JWT 인증 & API 공통 통신 헬퍼
         // ====================================================
         async function authFetch(url, options = {}) {
@@ -2198,32 +2268,40 @@
         window.addEventListener("DOMContentLoaded", () => {
             console.log('[StockAI] Initializing App...', { token: !!localStorage.getItem('auth_token') });
 
-            // 0. 테마 & 차트 & 드래그 이벤트 초기화
-            initTheme();
-            initChart();
-            bindChartDragPanEvents();
+            // 0. 테마 & 차트 & 드래그 이벤트 초기화 (안전 타입 가드)
+            if (typeof initTheme === 'function') initTheme();
+            if (typeof initChart === 'function') initChart();
+            if (typeof bindChartDragPanEvents === 'function') bindChartDragPanEvents();
 
             // 1) 로그인 토큰 확인 및 헤더 UI 세팅 (비동기)
-            checkAuthStatus();
+            if (typeof checkAuthStatus === 'function') checkAuthStatus();
 
             // 2) 기본 종목(삼성전자 005930) 시세 & 차트 로드
             const initialCode = currentStockCode || "{{ default_stock }}" || "005930";
-            loadStockDetail(initialCode, currentStockName);
+            if (typeof loadStockDetail === 'function') {
+                loadStockDetail(initialCode, currentStockName);
+            } else if (typeof loadStockData === 'function') {
+                loadStockData(initialCode, currentStockName);
+            }
 
             // 3) AI 랭킹 픽 데이터 로드
-            loadAllRankings();
+            if (typeof loadAllRankings === 'function') {
+                loadAllRankings();
+            } else if (typeof loadRankingData === 'function') {
+                loadRankingData();
+            }
 
             // 4. 외부 클릭 시 모달 및 드롭다운 닫기
             document.addEventListener("click", (e) => {
                 const panel = document.getElementById("stock-dropdown-panel");
                 const btn = document.getElementById("dropdown-trigger-btn");
                 if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-                    closeStockDropdown();
+                    if (typeof closeStockDropdown === 'function') closeStockDropdown();
                 }
 
                 const modal = document.getElementById("auth-modal");
                 if (modal && e.target === modal) {
-                    closeAuthModal();
+                    if (typeof closeAuthModal === 'function') closeAuthModal();
                 }
             });
         });
