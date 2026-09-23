@@ -104,11 +104,11 @@
 
             <!-- Header Badges -->
             <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" title="평일 16:00 장마감 후 자동 갱신">
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>실시간 딥러닝</span>
+                    <span>매일 16:00 자동 갱신</span>
                 </span>
-                <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors" title="새로고침">
+                <button onclick="triggerManualPipeline()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors" title="데이터 즉시 갱신">
                     <i id="refresh-icon" class="fa-solid fa-rotate text-sm"></i>
                 </button>
             </div>
@@ -210,13 +210,13 @@
             </div>
         </div>
 
-        <!-- Period Selection Pill Filter Tabs (Toss Style) -->
+        <!-- Period Selection Pill Filter Tabs (Toss Style: [전체], [내일 (1일)], [1주일 뒤 (5일)], [1달 뒤 (20일)]) -->
         <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-1 max-w-2xl">
             <button 
                 onclick="setPeriodFilter('all')" 
                 id="filter-btn-all" 
                 class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30">
-                전체 보기
+                전체
             </button>
             <button 
                 onclick="setPeriodFilter('1d')" 
@@ -228,13 +228,13 @@
                 onclick="setPeriodFilter('1w')" 
                 id="filter-btn-1w" 
                 class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all">
-                1주일 뒤
+                1주일 뒤 (5일)
             </button>
             <button 
                 onclick="setPeriodFilter('1m')" 
                 id="filter-btn-1m" 
                 class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all">
-                1달 뒤
+                1달 뒤 (20일)
             </button>
         </div>
 
@@ -740,6 +740,26 @@
 
         function refreshData() {
             loadStockData(currentStockCode, currentStockName);
+        }
+
+        async function triggerManualPipeline() {
+            if (!confirm("50개 종목의 최신 시세 수집 및 1D-CNN 예측 파이프라인을 지금 백그라운드에서 실행하시겠습니까?")) {
+                return;
+            }
+            try {
+                showLoadingState(true);
+                const resp = await fetch("/api/pipeline/run", { method: "POST" });
+                const res = await resp.json();
+                alert(res.message || "파이프라인이 시작되었습니다. 잠시 후 새로고침해주세요.");
+                setTimeout(() => {
+                    refreshData();
+                }, 3000);
+            } catch (err) {
+                console.error("수동 갱신 실패:", err);
+                alert("파이프라인 시작 요청에 실패했습니다.");
+            } finally {
+                showLoadingState(false);
+            }
         }
     </script>
 </body>

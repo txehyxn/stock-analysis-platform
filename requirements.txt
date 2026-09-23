@@ -10,3 +10,4 @@ torch>=2.2.0
 jinja2>=3.1.3
 python-multipart>=0.0.9
 pycloudflared>=0.3.0
+apscheduler>=3.10.0

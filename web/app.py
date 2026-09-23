@@ -2,11 +2,14 @@ import os
 import sys
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import FastAPI, Request, HTTPException
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 import uvicorn
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 # 상위 디렉토리 모듈 참조
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,20 +21,62 @@ from database.db_manager import (
     init_db
 )
 
+def run_full_pipeline():
+    """
+    장 마감 후 주식 데이터 크롤링 및 1D-CNN 예측을 순차 실행하는 전체 파이프라인 함수
+    """
+    print("\n" + "=" * 70)
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 전체 주식 파이프라인 실행 시작...")
+    print("=" * 70)
+    try:
+        from crawler.stock_spider import crawl_and_store_all
+        from ml_model.train_cnn import train_all_stocks
+
+        # 1. 50개 종목 크롤링 및 DB 적재
+        crawl_and_store_all(target_days=120)
+
+        # 2. 50개 종목 1D-CNN 배치 학습 및 예측치 DB 적재
+        train_all_stocks(epochs=30)
+
+        print("\n" + "=" * 70)
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [v] 전체 주식 파이프라인 자동 갱신 완료!")
+        print("=" * 70 + "\n")
+    except Exception as e:
+        print(f"[-] 파이프라인 실행 중 오류 발생: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """애플리케이션 수명 주기 관리 및 APScheduler 백그라운드 스케줄러 등록"""
+    init_db()
+
+    # 평일(월~금) 한국 시간 16:00 (장 마감 후) 자동 실행 스케줄러 설정
+    scheduler = BackgroundScheduler(timezone="Asia/Seoul")
+    scheduler.add_job(
+        run_full_pipeline,
+        CronTrigger(day_of_week="mon-fri", hour=16, minute=0, timezone="Asia/Seoul"),
+        id="daily_stock_market_close_pipeline",
+        name="평일 16:00 장마감 주식 시세 크롤링 및 1D-CNN 예측 갱신",
+        replace_existing=True
+    )
+    scheduler.start()
+    print("[*] APScheduler 가동: 평일(월~금) 16:00 KST 주식 시세 및 AI 예측 자동 갱신 등록 완료.")
+
+    yield
+
+    scheduler.shutdown()
+    print("[*] APScheduler 안전하게 종료되었습니다.")
+
 app = FastAPI(
     title="AI 주가 레이더 - Stock AI",
-    description="국내 50대 대표 종목 1D-CNN 시계열 주가 예측 플랫폼",
-    version="2.0.0"
+    description="국내 50대 대표 종목 1D-CNN 시계열 주가 예측 및 자동 갱신 플랫폼",
+    version="2.1.0",
+    lifespan=lifespan
 )
 
 # 템플릿 디렉토리 설정
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
-
-@app.on_event("startup")
-def startup_event():
-    init_db()
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
@@ -110,7 +155,6 @@ async def api_stock_detail(stock_code: str):
         pred_1m = int(round(float(prediction["pred_1m"])))
         pred_base_date = prediction["base_date"]
 
-        # 예측 시점 날짜 산출 (1영업일 뒤, 5영업일 뒤(1주), 20영업일 뒤(1달))
         date_1d = add_business_days(pred_base_date, 1)
         date_1w = add_business_days(pred_base_date, 5)
         date_1m = add_business_days(pred_base_date, 20)
@@ -138,6 +182,17 @@ async def api_stock_detail(stock_code: str):
         "base_date": base_date,
         "history": history,
         "prediction": prediction_data
+    }
+
+@app.post("/api/pipeline/run")
+async def trigger_pipeline(background_tasks: BackgroundTasks):
+    """
+    관리자 수동 갱신용 API: 전체 크롤링 및 1D-CNN 예측 파이프라인을 백그라운드로 즉시 실행합니다.
+    """
+    background_tasks.add_task(run_full_pipeline)
+    return {
+        "status": "success",
+        "message": "50개 종목 데이터 수집 및 1D-CNN 예측 갱신 파이프라인이 백그라운드에서 시작되었습니다."
     }
 
 if __name__ == "__main__":
