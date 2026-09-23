@@ -1082,6 +1082,66 @@
         }
 
         // ====================================================
+        // 메인 탭 전환 로직 (차트 분석 / AI 랭킹 픽 / 내 관심)
+        // ====================================================
+        window.switchMainTab = function(tab) {
+            console.log('[switchMainTab Clicked]', tab);
+            currentMainTab = tab;
+            const chartContainer = document.getElementById('chart-view-container');
+            const rankingContainer = document.getElementById('ranking-view-container');
+            const favContainer = document.getElementById('favorites-view-container');
+
+            const tabChart = document.getElementById('main-tab-chart');
+            const tabRank = document.getElementById('main-tab-ranking');
+            const tabFav = document.getElementById('main-tab-favorites');
+
+            // 1. 뷰 컨테이너 토글
+            if (chartContainer) chartContainer.classList.toggle('hidden', tab !== 'chart');
+            if (rankingContainer) {
+                rankingContainer.classList.toggle('hidden', tab !== 'ranking');
+                if (tab === 'ranking' && typeof loadAllRankings === 'function') {
+                    loadAllRankings();
+                }
+            }
+            if (favContainer) {
+                favContainer.classList.toggle('hidden', tab !== 'favorites');
+                if (tab === 'favorites') {
+                    if (typeof loadFavoritesView === 'function') {
+                        loadFavoritesView();
+                    } else if (typeof loadFavoritesData === 'function') {
+                        loadFavoritesData();
+                    }
+                }
+            }
+
+            // 2. 탭 버튼 스타일 갱신 (선택된 탭 하이라이트)
+            const activeClasses = ['bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-600/30'];
+            const inactiveClasses = ['text-slate-400', 'hover:text-white', 'hover:bg-slate-800/60'];
+
+            [tabChart, tabRank, tabFav].forEach(btn => {
+                if (!btn) return;
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            });
+
+            const currentBtn = tab === 'chart' ? tabChart : (tab === 'ranking' ? tabRank : tabFav);
+            if (currentBtn) {
+                currentBtn.classList.remove(...inactiveClasses);
+                currentBtn.classList.add(...activeClasses);
+            }
+        };
+
+        function switchMainTab(tab) {
+            return window.switchMainTab(tab);
+        }
+
+        function loadFavoritesView() {
+            if (typeof loadFavoritesData === 'function') {
+                return loadFavoritesData();
+            }
+        }
+
+        // ====================================================
         // 다크 / 라이트 테마 토글 및 차트 연동
         // ====================================================
         function initTheme() {
