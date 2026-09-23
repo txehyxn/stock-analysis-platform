@@ -1662,6 +1662,11 @@
         }
 
         async function loadStockData(code, name) {
+            console.log('[loadStockDetail Triggered]', code);
+            if (!code) code = currentStockCode || "{{ default_stock }}" || "005930";
+            currentStockCode = code;
+            if (name) currentStockName = name;
+
             try {
                 showLoadingState(true);
                 const resp = await authFetch(`/api/stock/${code}`);
@@ -1676,6 +1681,19 @@
             } finally {
                 showLoadingState(false);
             }
+        }
+
+        // 별칭 헬퍼 함수
+        function loadStockDetail(code, name) {
+            return loadStockData(code, name);
+        }
+
+        function renderStockDetail(data) {
+            return renderStockData(data);
+        }
+
+        function loadAllRankings() {
+            return loadRankingData();
         }
 
         function renderStockData(data) {
@@ -2173,6 +2191,42 @@
                 showLoadingState(false);
             }
         }
+
+        // ====================================================
+        // 초기화 및 DOMContentLoaded 진입점 (무조건 실행 보장)
+        // ====================================================
+        window.addEventListener("DOMContentLoaded", () => {
+            console.log('[StockAI] Initializing App...', { token: !!localStorage.getItem('auth_token') });
+
+            // 0. 테마 & 차트 & 드래그 이벤트 초기화
+            initTheme();
+            initChart();
+            bindChartDragPanEvents();
+
+            // 1) 로그인 토큰 확인 및 헤더 UI 세팅 (비동기)
+            checkAuthStatus();
+
+            // 2) 기본 종목(삼성전자 005930) 시세 & 차트 로드
+            const initialCode = currentStockCode || "{{ default_stock }}" || "005930";
+            loadStockDetail(initialCode, currentStockName);
+
+            // 3) AI 랭킹 픽 데이터 로드
+            loadAllRankings();
+
+            // 4. 외부 클릭 시 모달 및 드롭다운 닫기
+            document.addEventListener("click", (e) => {
+                const panel = document.getElementById("stock-dropdown-panel");
+                const btn = document.getElementById("dropdown-trigger-btn");
+                if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+                    closeStockDropdown();
+                }
+
+                const modal = document.getElementById("auth-modal");
+                if (modal && e.target === modal) {
+                    closeAuthModal();
+                }
+            });
+        });
     </script>
 </body>
 </html>
