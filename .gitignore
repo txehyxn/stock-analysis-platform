@@ -1,0 +1,31 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Database
+*.db
+*.sqlite3
+stock_data.db
+
+# Excel Data Backups
+data/excel/*.xlsx
+!data/excel/.gitkeep
+
+# Environment Variables & IDE
+.env
+.env.local
+.vscode/
+.idea/
+
+# Distribution / Packaging
+dist/
+build/
+*.egg-info/

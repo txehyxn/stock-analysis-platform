@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 주식 분석 및 1D-CNN 시세 예측 대시보드</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        up: '#f43f5e',
+                        down: '#3b82f6',
+                        accent: '#f97316'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        .glow-orange {
+            box-shadow: 0 0 20px -5px rgba(249, 115, 22, 0.3);
+        }
+        .glow-blue {
+            box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-slate-800/80 px-4 py-3 sm:px-6">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-500 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="fa-solid fa-chart-line text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold font-display tracking-tight text-white flex items-center gap-2">
+                        StockAI <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-medium border border-indigo-500/30">1D-CNN</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">AI Multi-output Regression Stock Forecast</p>
+                </div>
+            </div>
+
+            <!-- Server Status & Actions -->
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="hidden sm:inline">실시간 파이프라인</span> 가동중
+                </span>
+                <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="새로고침">
+                    <i id="refresh-icon" class="fa-solid fa-rotate text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        <!-- Stock Selector Tabs (Mobile scrollable) -->
+        <div class="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar border-b border-slate-800/60">
+            {% for stock in stocks %}
+            <button 
+                onclick="selectStock('{{ stock.code }}', '{{ stock.name }}')"
+                id="tab-{{ stock.code }}"
+                class="stock-tab px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 flex items-center gap-2 border {% if stock.code == default_stock %}bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30{% else %}bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800/80{% endif %}">
+                <span class="w-2 h-2 rounded-full {% if stock.code == default_stock %}bg-amber-400{% else %}bg-slate-600{% endif %}"></span>
+                <span>{{ stock.name }}</span>
+                <span class="font-mono text-xs opacity-75">({{ stock.code }})</span>
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- Header Information for Selected Stock -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h2 id="current-stock-name" class="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">삼성전자</h2>
+                    <span id="current-stock-code" class="text-sm font-mono text-slate-400 px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700">005930</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                    <i class="fa-regular fa-calendar-check text-slate-500"></i>
+                    기준일자: <span id="current-base-date" class="font-mono text-slate-300 font-medium">-</span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-slate-400">학습 윈도우: 과거 30영업일</span>
+                </p>
+            </div>
+            <div class="text-right sm:text-right flex sm:flex-col justify-between sm:justify-end items-center sm:items-end">
+                <span class="text-xs text-slate-400">최근 종가</span>
+                <div class="flex items-baseline gap-2">
+                    <span id="current-price-val" class="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">- KRW</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 Summary Prediction Cards (Responsive Grid: 1 col on Mobile, 4 col on Large) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: 기준 종가 -->
+            <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 mb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider">기준일 종가 (Base)</span>
+                    <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                        <i class="fa-solid fa-building-columns text-xs"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-bold font-mono text-blue-400" id="card-base-price">-</div>
+                <div class="text-xs text-slate-400 mt-1 font-mono flex items-center gap-1">
+                    <span>기준일:</span> <span id="card-base-date" class="text-slate-300">-</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-blue-500/40"></div>
+            </div>
+
+            <!-- Card 2: 1일 뒤 예측 -->
+            <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-semibold uppercase tracking-wider">1일 뒤 예측 (1D)</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded bg-indigo-500/20 text-indigo-300 font-mono">Next Day</span>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                        <i class="fa-solid fa-bolt text-xs"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-bold font-mono text-white" id="card-pred-1d">-</div>
+                <div class="flex items-center justify-between text-xs mt-1">
+                    <span class="text-slate-400 font-mono" id="card-date-1d">-</span>
+                    <span id="card-change-1d" class="font-mono font-semibold px-2 py-0.5 rounded-full text-xs">-</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500/40"></div>
+            </div>
+
+            <!-- Card 3: 1주 뒤 예측 -->
+            <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-semibold uppercase tracking-wider">1주 뒤 예측 (1W)</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded bg-amber-500/20 text-amber-300 font-mono">+5 Days</span>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+                        <i class="fa-solid fa-calendar-week text-xs"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-bold font-mono text-white" id="card-pred-1w">-</div>
+                <div class="flex items-center justify-between text-xs mt-1">
+                    <span class="text-slate-400 font-mono" id="card-date-1w">-</span>
+                    <span id="card-change-1w" class="font-mono font-semibold px-2 py-0.5 rounded-full text-xs">-</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500/40"></div>
+            </div>
+
+            <!-- Card 4: 1달 뒤 예측 -->
+            <div class="glass-card p-4 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between text-slate-400 mb-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-semibold uppercase tracking-wider">1달 뒤 예측 (1M)</span>
+                        <span class="px-1.5 py-0.5 text-[10px] rounded bg-rose-500/20 text-rose-300 font-mono">+20 Days</span>
+                    </div>
+                    <div class="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-400">
+                        <i class="fa-solid fa-bullseye text-xs"></i>
+                    </div>
+                </div>
+                <div class="text-2xl font-bold font-mono text-white" id="card-pred-1m">-</div>
+                <div class="flex items-center justify-between text-xs mt-1">
+                    <span class="text-slate-400 font-mono" id="card-date-1m">-</span>
+                    <span id="card-change-1m" class="font-mono font-semibold px-2 py-0.5 rounded-full text-xs">-</span>
+                </div>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500/40"></div>
+            </div>
+
+        </div>
+
+        <!-- Main Chart Section -->
+        <div class="glass-panel p-4 sm:p-6 rounded-3xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping"></div>
+                    <h3 class="text-base font-bold text-white tracking-tight">과거 시세 및 1D-CNN 예측 트렌드 차트</h3>
+                </div>
+                
+                <!-- Chart Legends & Details -->
+                <div class="flex items-center flex-wrap gap-4 text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3.5 h-1 bg-blue-500 rounded-full inline-block"></span>
+                        <span class="text-slate-300">실제 종가 (Blue Line)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-0.5 border-t-2 border-dashed border-orange-500 inline-block"></span>
+                        <span class="text-amber-400 font-medium">1D-CNN 예측치 (Orange Dashed)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart Canvas Container (Responsive Height) -->
+            <div class="relative w-full h-[320px] sm:h-[420px]">
+                <canvas id="stockChart"></canvas>
+            </div>
+
+            <!-- Chart Note Footer -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-800/60">
+                <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-indigo-400"></i>
+                    <span>차트의 주황색 점선은 마지막 실제 종가 지점부터 모델이 산출한 [1일, 1주(5일), 1달(20일)] 예측 지점을 부드럽게 연결합니다.</span>
+                </div>
+                <span class="font-mono text-slate-400" id="data-count-label">데이터: 0 건</span>
+            </div>
+        </div>
+
+        <!-- AI Model Insights & System Info -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="glass-card p-5 rounded-2xl md:col-span-2 space-y-3">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-microchip text-indigo-400"></i>
+                    PyTorch 1D-CNN 다중 회귀 모델 사양
+                </h4>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-400 pt-1">
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <div class="text-slate-500">입력 형태 (Input)</div>
+                        <div class="font-mono text-slate-200 font-semibold mt-1">30 영업일 종가 (1D)</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <div class="text-slate-500">출력 형태 (Output)</div>
+                        <div class="font-mono text-amber-400 font-semibold mt-1">3개 시점 (1d, 1w, 1m)</div>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                        <div class="text-slate-500">신경망 구조</div>
+                        <div class="font-mono text-indigo-300 font-semibold mt-1">Conv1D + BatchNorm + Regressor</div>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    본 모델은 30영업일간의 주가 패턴(국소 특징 및 모멘텀)을 1차원 컨볼루션 필터로 추출하여 1일 뒤, 5일 뒤(1주), 20일 뒤(1달) 종가를 동시에 회귀 추정합니다.
+                </p>
+            </div>
+
+            <div class="glass-card p-5 rounded-2xl space-y-3">
+                <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-server text-emerald-400"></i>
+                    파이프라인 아키텍처
+                </h4>
+                <ul class="text-xs space-y-2 text-slate-400">
+                    <li class="flex items-center gap-2">
+                        <i class="fa-solid fa-check text-emerald-400"></i>
+                        <span><strong>크롤러:</strong> 네이버 증권 3개 컬럼 추출</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fa-solid fa-check text-emerald-400"></i>
+                        <span><strong>저장소:</strong> SQLite & Excel 동시 백업</span>
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="fa-solid fa-check text-emerald-400"></i>
+                        <span><strong>백엔드:</strong> FastAPI & Chart.js 비동기 시각화</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-panel border-t border-slate-800/80 mt-12 py-4 px-4 sm:px-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>© 2026 Stock Analysis & 1D-CNN Prediction Platform. All rights reserved.</span>
+            <span class="font-mono text-slate-400">Single-developer Pipeline Prototype</span>
+        </div>
+    </footer>
+
+    <!-- Frontend Script -->
+    <script>
+        let currentStockCode = "{{ default_stock }}";
+        let currentStockName = "{{ default_stock_name }}";
+        let stockChart = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initChart();
+            loadStockData(currentStockCode, currentStockName);
+        });
+
+        function selectStock(code, name) {
+            currentStockCode = code;
+            currentStockName = name;
+
+            // 탭 스타일 갱신
+            document.querySelectorAll(".stock-tab").forEach(tab => {
+                tab.className = "stock-tab px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 flex items-center gap-2 border bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800/80";
+                const dot = tab.querySelector("span");
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-600";
+            });
+
+            const activeTab = document.getElementById(`tab-${code}`);
+            if (activeTab) {
+                activeTab.className = "stock-tab px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 flex items-center gap-2 border bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30";
+                const dot = activeTab.querySelector("span");
+                if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400";
+            }
+
+            loadStockData(code, name);
+        }
+
+        async function loadStockData(code, name) {
+            try {
+                showLoadingState(true);
+                const resp = await fetch(`/api/stock/${code}`);
+                if (!resp.ok) {
+                    throw new Error(`API Error: ${resp.status}`);
+                }
+                const data = await resp.json();
+                renderStockData(data);
+            } catch (err) {
+                console.error("데이터 로드 실패:", err);
+                alert("주식 데이터를 불러오는데 실패했습니다. 크롤러가 실행되었는지 확인해주세요.");
+            } finally {
+                showLoadingState(false);
+            }
+        }
+
+        function renderStockData(data) {
+            // 헤더 정보 갱신
+            document.getElementById("current-stock-name").innerText = data.stock_name;
+            document.getElementById("current-stock-code").innerText = data.stock_code;
+            document.getElementById("current-base-date").innerText = data.base_date || "-";
+            document.getElementById("current-price-val").innerText = data.current_price 
+                ? Number(data.current_price).toLocaleString() + " KRW" 
+                : "- KRW";
+
+            // 카드 1: 기준 종가
+            document.getElementById("card-base-price").innerText = data.current_price 
+                ? Number(data.current_price).toLocaleString() + " 원" 
+                : "-";
+            document.getElementById("card-base-date").innerText = data.base_date || "-";
+
+            // 카드 2, 3, 4: 예측 데이터
+            const pred = data.prediction;
+            if (pred) {
+                // 1일 뒤
+                document.getElementById("card-pred-1d").innerText = Number(pred.pred_1d).toLocaleString() + " 원";
+                document.getElementById("card-date-1d").innerText = pred.date_1d;
+                formatChangeBadge("card-change-1d", pred.change_1d_pct);
+
+                // 1주 뒤
+                document.getElementById("card-pred-1w").innerText = Number(pred.pred_1w).toLocaleString() + " 원";
+                document.getElementById("card-date-1w").innerText = pred.date_1w;
+                formatChangeBadge("card-change-1w", pred.change_1w_pct);
+
+                // 1달 뒤
+                document.getElementById("card-pred-1m").innerText = Number(pred.pred_1m).toLocaleString() + " 원";
+                document.getElementById("card-date-1m").innerText = pred.date_1m;
+                formatChangeBadge("card-change-1m", pred.change_1m_pct);
+            } else {
+                ["1d", "1w", "1m"].forEach(key => {
+                    document.getElementById(`card-pred-${key}`).innerText = "예측 필요";
+                    document.getElementById(`card-date-${key}`).innerText = "-";
+                    document.getElementById(`card-change-${key}`).innerText = "-";
+                });
+            }
+
+            document.getElementById("data-count-label").innerText = `시세 데이터: ${data.history.length} 건`;
+
+            // 차트 업데이트
+            updateChart(data.history, pred);
+        }
+
+        function formatChangeBadge(elementId, pct) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const isUp = pct >= 0;
+            const sign = isUp ? "+" : "";
+            el.innerText = `${sign}${pct.toFixed(2)}%`;
+            if (isUp) {
+                el.className = "font-mono font-semibold px-2 py-0.5 rounded-md text-xs bg-rose-500/20 text-rose-400 border border-rose-500/30";
+            } else {
+                el.className = "font-mono font-semibold px-2 py-0.5 rounded-md text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30";
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById("stockChart").getContext("2d");
+
+            // Chart.js Gradient Fill
+            const blueGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            blueGradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+            blueGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+            stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '실제 종가 (Close)',
+                            data: [],
+                            borderColor: '#3b82f6',
+                            backgroundColor: blueGradient,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.2,
+                            pointRadius: 1.5,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#3b82f6',
+                        },
+                        {
+                            label: '1D-CNN 예측치 (Forecast)',
+                            data: [],
+                            borderColor: '#f97316',
+                            borderWidth: 2.5,
+                            borderDash: [6, 6],
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 5,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: '#f97316',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                            titleColor: '#f1f5f9',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            boxPadding: 6,
+                            usePointStyle: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += Number(context.parsed.y).toLocaleString() + ' 원';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.04)',
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                maxTicksLimit: 8,
+                                font: {
+                                    family: 'JetBrains Mono',
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)',
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    family: 'JetBrains Mono',
+                                    size: 11
+                                },
+                                callback: function(value) {
+                                    return Number(value).toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(history, prediction) {
+            if (!stockChart) return;
+
+            // 최근 80개 데이터 표시 (너무 길면 가독성 저하 방지)
+            const recentHistory = history.slice(-80);
+            
+            const labels = recentHistory.map(h => h.date);
+            const actualPrices = recentHistory.map(h => h.close_price);
+            
+            // 예측 데이터셋 준비: 과거 구간은 null로 채우고, 기준일 종가부터 예측값들을 연결
+            const predPrices = new Array(actualPrices.length).fill(null);
+
+            if (prediction && actualPrices.length > 0) {
+                // 마지막 실제 데이터 지점에 기준가 할당 (연결점)
+                predPrices[predPrices.length - 1] = actualPrices[actualPrices.length - 1];
+
+                // 미래 예측 포인트 라벨 및 데이터 추가
+                labels.push(prediction.date_1d + " (1D)");
+                predPrices.push(prediction.pred_1d);
+                actualPrices.push(null);
+
+                labels.push(prediction.date_1w + " (1W)");
+                predPrices.push(prediction.pred_1w);
+                actualPrices.push(null);
+
+                labels.push(prediction.date_1m + " (1M)");
+                predPrices.push(prediction.pred_1m);
+                actualPrices.push(null);
+            }
+
+            stockChart.data.labels = labels;
+            stockChart.data.datasets[0].data = actualPrices;
+            stockChart.data.datasets[1].data = predPrices;
+            stockChart.update();
+        }
+
+        function showLoadingState(isLoading) {
+            const refreshIcon = document.getElementById("refresh-icon");
+            if (isLoading) {
+                refreshIcon.classList.add("fa-spin");
+            } else {
+                refreshIcon.classList.remove("fa-spin");
+            }
+        }
+
+        function refreshData() {
+            loadStockData(currentStockCode, currentStockName);
+        }
+    </script>
+</body>
+</html>
