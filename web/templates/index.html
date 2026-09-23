@@ -47,6 +47,20 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- Theme Preload Script to Prevent Flickering -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light');
+            } else {
+                document.documentElement.classList.remove('light');
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+    
     <style>
         body {
             font-family: 'Pretendard', sans-serif;
@@ -54,6 +68,7 @@
             color: #f1f5f9;
             -webkit-tap-highlight-color: transparent;
             letter-spacing: -0.02em;
+            transition: background-color 0.25s ease, color 0.25s ease;
         }
         .font-display {
             font-family: 'Outfit', 'Pretendard', sans-serif;
@@ -95,12 +110,205 @@
             background: #27354f;
             border-radius: 4px;
         }
+
+        /* ==================================================== */
+        /* LIGHT THEME TOKENS & OVERRIDES (Toss White Style)    */
+        /* ==================================================== */
+        html.light body {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        html.light header {
+            background-color: rgba(255, 255, 255, 0.92) !important;
+            border-color: #e2e8f0 !important;
+        }
+        html.light header h1 span:first-child {
+            color: #0f172a !important;
+        }
+        html.light .toss-card {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+        }
+        html.light .toss-card:hover {
+            border-color: rgba(49, 130, 246, 0.4) !important;
+        }
+        html.light .toss-active-card {
+            border-color: #3182f6 !important;
+            box-shadow: 0 4px 25px -2px rgba(49, 130, 246, 0.25) !important;
+        }
+        html.light .hero-gradient {
+            background: linear-gradient(135deg, rgba(49, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.08) 50%, #ffffff 100%) !important;
+            border: 1px solid rgba(49, 130, 246, 0.3) !important;
+            box-shadow: 0 10px 30px -5px rgba(49, 130, 246, 0.1) !important;
+        }
+        html.light .hero-gradient h3,
+        html.light .hero-gradient p {
+            color: #0f172a !important;
+        }
+        html.light .hero-gradient #hero-stock-code {
+            background: #f1f5f9 !important;
+            color: #475569 !important;
+        }
+        html.light #hero-target-price,
+        html.light #current-price-val,
+        html.light #current-stock-name {
+            color: #0f172a !important;
+        }
+        html.light #current-stock-code {
+            background: #f1f5f9 !important;
+            border-color: #e2e8f0 !important;
+            color: #475569 !important;
+        }
+        html.light #dropdown-trigger-btn {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+        }
+        html.light #dropdown-trigger-btn #selected-stock-display-name {
+            color: #0f172a !important;
+        }
+        html.light #stock-dropdown-panel {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 20px 35px -5px rgba(0, 0, 0, 0.15) !important;
+        }
+        html.light #stock-search-input {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        html.light .stock-item-btn {
+            color: #334155 !important;
+        }
+        html.light .stock-item-btn:hover {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+        }
+        html.light .quick-btn {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #475569 !important;
+        }
+        html.light .quick-btn:hover {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border-color: #3182f6 !important;
+        }
+        html.light .period-filter-btn {
+            color: #64748b !important;
+        }
+        html.light .period-filter-btn:hover {
+            color: #0f172a !important;
+        }
+        html.light .bg-\[\#141c2e\] {
+            background-color: #f1f5f9 !important;
+            border-color: #e2e8f0 !important;
+        }
+        html.light .bg-\[\#0b0e17\] {
+            background-color: #f8fafc !important;
+        }
+        html.light .bg-\[\#0b0e17\]\/60,
+        html.light .bg-\[\#0b0e17\]\/70 {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+        html.light .text-white {
+            color: #0f172a !important;
+        }
+        html.light .text-slate-300 {
+            color: #334155 !important;
+        }
+        html.light .text-slate-400 {
+            color: #64748b !important;
+        }
+        html.light .text-slate-500 {
+            color: #94a3b8 !important;
+        }
+        html.light .border-slate-800,
+        html.light .border-slate-800\/80,
+        html.light .border-slate-800\/60,
+        html.light .border-slate-800\/90,
+        html.light .border-slate-700,
+        html.light .border-slate-700\/70,
+        html.light .border-slate-700\/80,
+        html.light .border-slate-700\/50,
+        html.light .border-slate-700\/40 {
+            border-color: #e2e8f0 !important;
+        }
+        html.light #theme-toggle-btn {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #6366f1 !important;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+        }
+        html.light #theme-toggle-btn:hover {
+            background-color: #f1f5f9 !important;
+        }
+        html.light #theme-toggle-btn #theme-icon {
+            color: #6366f1 !important;
+        }
+        html.light #theme-toggle-btn #theme-text {
+            color: #4f46e5 !important;
+        }
+        html.light #backtest-banner {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+        html.light .bg-emerald-950\/20 {
+            background-color: rgba(16, 185, 129, 0.08) !important;
+            border-color: rgba(16, 185, 129, 0.25) !important;
+        }
+        html.light .bg-blue-950\/20 {
+            background-color: rgba(49, 130, 246, 0.08) !important;
+            border-color: rgba(49, 130, 246, 0.25) !important;
+        }
+        html.light .bg-amber-950\/25 {
+            background-color: rgba(245, 158, 11, 0.08) !important;
+            border-color: rgba(245, 158, 11, 0.25) !important;
+        }
+        html.light #chart-drag-hint {
+            background-color: #f1f5f9 !important;
+            border-color: #e2e8f0 !important;
+            color: #475569 !important;
+        }
+        html.light #top-1m-container > div,
+        html.light #top-1w-container > div {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+        }
+        html.light #top-1m-container > div:hover,
+        html.light #top-1w-container > div:hover {
+            background-color: #eff6ff !important;
+            border-color: rgba(49, 130, 246, 0.3) !important;
+        }
+        html.light #caution-container > div {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+        }
+        html.light #caution-container > div:hover {
+            background-color: #eff6ff !important;
+            border-color: rgba(49, 130, 246, 0.3) !important;
+        }
+        html.light footer {
+            border-color: #e2e8f0 !important;
+            color: #94a3b8 !important;
+        }
+        html.light ::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        html.light ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
 
     <!-- Top Sticky Header -->
-    <header class="sticky top-0 z-40 bg-[#0b0e17]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 py-3 sm:px-6">
+    <header class="sticky top-0 z-40 bg-[#0b0e17]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 py-3 sm:px-6 transition-colors duration-200">
         <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
             <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
                 <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
@@ -115,12 +323,24 @@
                 </div>
             </div>
 
-            <!-- Header Right: Auto Refresh Badge & Actions -->
+            <!-- Header Right: Theme Toggle & Actions -->
             <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+                
+                <!-- ☀️ / 🌙 Theme Toggle Pill Button -->
+                <button 
+                    id="theme-toggle-btn"
+                    onclick="toggleTheme()"
+                    class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all bg-[#141c2e] hover:bg-slate-800 border border-slate-700/80 text-amber-400 shadow-sm"
+                    title="테마 전환 (다크 / 라이트)">
+                    <i id="theme-icon" class="fa-solid fa-sun text-amber-400 text-xs"></i>
+                    <span id="theme-text" class="whitespace-nowrap">라이트</span>
+                </button>
+
                 <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap" title="평일 16:00 장마감 후 자동 갱신">
                     <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>16:00 자동 갱신</span>
                 </span>
+
                 <button onclick="triggerManualPipeline()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors flex-shrink-0" title="데이터 즉시 갱신">
                     <i id="refresh-icon" class="fa-solid fa-rotate text-sm"></i>
                 </button>
@@ -589,7 +809,88 @@
             return dateStr;
         }
 
+        // ====================================================
+        // 테마 관리 (다크 / 라이트 모드 토글 & 영구 저장 & 차트 연동)
+        // ====================================================
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            setTheme(savedTheme, false);
+        }
+
+        function setTheme(theme, updateChart = true) {
+            const isLight = (theme === 'light');
+            const htmlEl = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            if (isLight) {
+                htmlEl.classList.remove('dark');
+                htmlEl.classList.add('light');
+                document.body.classList.add('light-theme');
+                localStorage.setItem('theme', 'light');
+                if (themeIcon) {
+                    themeIcon.className = 'fa-solid fa-moon text-indigo-500 text-xs';
+                }
+                if (themeText) {
+                    themeText.innerText = '다크';
+                    themeText.className = 'whitespace-nowrap text-indigo-600';
+                }
+            } else {
+                htmlEl.classList.remove('light');
+                htmlEl.classList.add('dark');
+                document.body.classList.remove('light-theme');
+                localStorage.setItem('theme', 'dark');
+                if (themeIcon) {
+                    themeIcon.className = 'fa-solid fa-sun text-amber-400 text-xs';
+                }
+                if (themeText) {
+                    themeText.innerText = '라이트';
+                    themeText.className = 'whitespace-nowrap text-amber-400';
+                }
+            }
+
+            if (updateChart && stockChart) {
+                applyChartTheme(isLight);
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('theme') || (document.documentElement.classList.contains('light') ? 'light' : 'dark');
+            const nextTheme = (currentTheme === 'light') ? 'dark' : 'light';
+            setTheme(nextTheme, true);
+        }
+
+        function applyChartTheme(isLight) {
+            if (!stockChart) return;
+            
+            const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.04)';
+            const tickColor = isLight ? '#475569' : '#94a3b8';
+            const tooltipBg = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(11, 14, 23, 0.95)';
+            const tooltipTitle = isLight ? '#0f172a' : '#f1f5f9';
+            const tooltipBody = isLight ? '#334155' : '#cbd5e1';
+            const tooltipBorder = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
+
+            if (stockChart.options.scales && stockChart.options.scales.x) {
+                stockChart.options.scales.x.grid.color = gridColor;
+                stockChart.options.scales.x.ticks.color = tickColor;
+            }
+            if (stockChart.options.scales && stockChart.options.scales.y) {
+                stockChart.options.scales.y.grid.color = gridColor;
+                stockChart.options.scales.y.ticks.color = tickColor;
+            }
+            
+            if (stockChart.options.plugins && stockChart.options.plugins.tooltip) {
+                stockChart.options.plugins.tooltip.backgroundColor = tooltipBg;
+                stockChart.options.plugins.tooltip.titleColor = tooltipTitle;
+                stockChart.options.plugins.tooltip.bodyColor = tooltipBody;
+                stockChart.options.plugins.tooltip.borderColor = tooltipBorder;
+            }
+
+            stockChart.update();
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
+            initTheme();
             initChart();
             bindChartDragPanEvents();
             loadStockData(currentStockCode, currentStockName);
@@ -1046,6 +1347,11 @@
                     }
                 }
             });
+
+            // 현재 설정된 테마(라이트/다크)에 맞춰 초기 차트 테마 동기화
+            if (document.documentElement.classList.contains('light')) {
+                applyChartTheme(true);
+            }
         }
 
         // 전체 과거 시세와 예측치를 100% 로드 (데이터 손실 없음)
