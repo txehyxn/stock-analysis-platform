@@ -19,9 +19,9 @@ from database.db_manager import (
 )
 
 app = FastAPI(
-    title="Stock Analysis & 1D-CNN Prediction Platform",
-    description="실시간 네이버 증권 데이터 및 PyTorch 1D-CNN 다중 회귀 예측 대시보드",
-    version="1.0.0"
+    title="AI 주가 레이더 - Stock AI",
+    description="국내 50대 대표 종목 1D-CNN 시계열 주가 예측 플랫폼",
+    version="2.0.0"
 )
 
 # 템플릿 디렉토리 설정
@@ -72,15 +72,16 @@ def add_business_days(start_date_str: str, n_days: int) -> str:
 async def api_stock_detail(stock_code: str):
     """
     특정 종목의 과거 종가 이력 및 1D-CNN 예측 데이터(1일/1주/1달)를 반환합니다.
+    (모든 가격 데이터는 정수 반올림 처리)
     """
     stock_code = stock_code.zfill(6)
     if stock_code not in STOCK_INFO:
         raise HTTPException(status_code=404, detail="Stock code not found")
 
-    history = get_daily_prices(stock_code)
+    raw_history = get_daily_prices(stock_code)
     prediction = get_latest_prediction(stock_code)
 
-    if not history:
+    if not raw_history:
         return {
             "stock_code": stock_code,
             "stock_name": STOCK_INFO.get(stock_code, stock_code),
@@ -89,14 +90,24 @@ async def api_stock_detail(stock_code: str):
             "message": "데이터가 아직 수집되지 않았습니다. 크롤러를 실행해주세요."
         }
 
+    # 히스토리 가격 정수화
+    history = [
+        {
+            "stock_code": h["stock_code"],
+            "date": h["date"],
+            "close_price": int(round(float(h["close_price"])))
+        }
+        for h in raw_history
+    ]
+
     current_price = history[-1]["close_price"]
     base_date = history[-1]["date"]
 
     prediction_data = None
     if prediction:
-        pred_1d = prediction["pred_1d"]
-        pred_1w = prediction["pred_1w"]
-        pred_1m = prediction["pred_1m"]
+        pred_1d = int(round(float(prediction["pred_1d"])))
+        pred_1w = int(round(float(prediction["pred_1w"])))
+        pred_1m = int(round(float(prediction["pred_1m"])))
         pred_base_date = prediction["base_date"]
 
         # 예측 시점 날짜 산출 (1영업일 뒤, 5영업일 뒤(1주), 20영업일 뒤(1달))
