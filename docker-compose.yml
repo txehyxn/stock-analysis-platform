@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  stock-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: stock-analysis-platform:latest
+    container_name: stock-analysis-platform
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./stock_data.db:/app/stock_data.db
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TZ=Asia/Seoul
+    restart: unless-stopped

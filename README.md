@@ -53,3 +53,15 @@ pip install -r requirements.txt
 .\.venv\Scripts\python.exe web/app.py
 ```
 - 브라우저 접속: `http://localhost:8000` (모바일 브라우저 및 외부 접속 가능)
+
+### 5. Docker 컨테이너로 실행
+```bash
+# Docker Compose로 원클릭 빌드 및 백그라운드 실행
+docker compose up -d --build
+
+# 로그 확인
+docker compose logs -f
+
+# 컨테이너 종료
+docker compose down
+```
