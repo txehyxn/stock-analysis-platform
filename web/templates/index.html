@@ -354,27 +354,43 @@
 
             <!-- Main Chart Card (Toss Minimalist Line) -->
             <div class="toss-card p-4 sm:p-6 rounded-3xl space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-800/80">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
                         <h3 class="text-base font-bold text-white tracking-tight">주가 흐름 & AI 예측 궤적</h3>
+                        
+                        <!-- Drag & Swipe Hint Pill -->
+                        <span id="chart-drag-hint" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-slate-800/90 text-slate-300 border border-slate-700/60 transition-opacity ml-1">
+                            <i class="fa-solid fa-arrows-left-right text-blue-400 text-[10px]"></i>
+                            <span>좌우 드래그 과거 탐색</span>
+                        </span>
                     </div>
                     
-                    <div class="flex items-center flex-wrap gap-4 text-xs">
-                        <div class="flex items-center gap-2">
-                            <span class="w-3.5 h-1 bg-blue-500 rounded-full inline-block"></span>
+                    <div class="flex items-center flex-wrap gap-3.5 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-1 bg-blue-500 rounded-full inline-block"></span>
                             <span class="text-slate-300 font-medium">실제 종가</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="w-4 h-0.5 border-t-2 border-dashed border-orange-500 inline-block"></span>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3.5 h-0.5 border-t-2 border-dashed border-orange-500 inline-block"></span>
                             <span class="text-orange-400 font-semibold">AI 예측 경로</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Canvas Container -->
-                <div class="relative w-full h-[320px] sm:h-[420px]">
-                    <canvas id="stockChart"></canvas>
+                <div class="relative w-full h-[320px] sm:h-[420px] select-none">
+                    <canvas id="stockChart" class="w-full h-full cursor-grab active:cursor-grabbing touch-pan-y"></canvas>
+                    
+                    <!-- Floating Reset to Latest Button -->
+                    <button 
+                        id="chart-reset-btn" 
+                        onclick="resetChartToLatest()"
+                        class="hidden absolute right-3 bottom-3 z-10 px-3 py-1.5 rounded-xl bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-bold shadow-lg shadow-blue-500/30 flex items-center gap-1.5 backdrop-blur transition-all active:scale-95 border border-blue-400/30"
+                        title="최신 시세 및 예측 화면으로 복귀">
+                        <i class="fa-solid fa-rotate-right text-[10px]"></i>
+                        <span>최신으로 ↻</span>
+                    </button>
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-800/60">
@@ -522,6 +538,16 @@
         let cachedData = null;
         let cachedRankings = null;
 
+        // 차트 Pan & Drag 상태 변수
+        let totalChartLength = 0;
+        let currentMinIdx = 0;
+        let currentMaxIdx = 0;
+        let isDraggingChart = false;
+        let dragStartX = 0;
+        let dragStartMinIdx = 0;
+        let dragStartMaxIdx = 0;
+        let dragMoved = false;
+
         function formatKRW(val) {
             if (val === null || val === undefined || isNaN(val)) return "-원";
             return Math.round(Number(val)).toLocaleString('ko-KR') + '원';
@@ -539,6 +565,7 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             initChart();
+            bindChartDragPanEvents();
             loadStockData(currentStockCode, currentStockName);
             loadRankingData();
 
@@ -806,6 +833,10 @@
 
             document.getElementById("data-count-label").innerText = `시세 데이터: ${data.history ? data.history.length : 0} 건`;
 
+            // 1. 전체 데이터셋 로드 (데이터를 자르지 않고 100% 로드)
+            loadFullChartData(data.history, pred);
+
+            // 2. 현재 선택된 기간 필터 범위로 줌 적용
             setPeriodFilter(currentPeriodFilter);
         }
 
@@ -819,49 +850,6 @@
                 el.className = "font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25 font-mono";
             } else {
                 el.className = "font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs bg-blue-500/15 text-[#3182f6] border border-blue-500/25 font-mono";
-            }
-        }
-
-        // 기간 선택 필터 버튼 제어 (1주일 / 1달 / 3달 / 1년/전체)
-        function setPeriodFilter(period) {
-            currentPeriodFilter = period;
-
-            // 세그먼트 버튼 활성화 UI
-            const activePeriodKey = (period === '1d_card') ? '1w' : period;
-            ['1w', '1m', '3m', 'all'].forEach(p => {
-                const btn = document.getElementById(`filter-btn-${p}`);
-                if (btn) {
-                    if (p === activePeriodKey) {
-                        btn.className = "period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30";
-                    } else {
-                        btn.className = "period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all";
-                    }
-                }
-            });
-
-            // 하단 예측 카드 하이라이트 연동 (파란색 보더 및 글로우)
-            const activeCards = {
-                '1w': ['1w'],
-                '1d_card': ['1d'],
-                '1m': ['1m'],
-                '3m': ['1m'],
-                'all': []
-            };
-            const highlightTargets = activeCards[period] || [];
-
-            ['1d', '1w', '1m'].forEach(key => {
-                const card = document.getElementById(`card-wrap-${key}`);
-                if (card) {
-                    if (highlightTargets.includes(key)) {
-                        card.classList.add("toss-active-card");
-                    } else {
-                        card.classList.remove("toss-active-card");
-                    }
-                }
-            });
-
-            if (cachedData) {
-                updateChart(cachedData.history, cachedData.prediction, period);
             }
         }
 
@@ -909,7 +897,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: {
-                        duration: 400,
+                        duration: 350,
                         easing: 'easeOutQuart'
                     },
                     interaction: {
@@ -951,7 +939,7 @@
                             },
                             ticks: {
                                 color: '#94a3b8',
-                                maxTicksLimit: 5,
+                                maxTicksLimit: 6,
                                 maxRotation: 0,
                                 minRotation: 0,
                                 autoSkip: true,
@@ -984,25 +972,12 @@
             });
         }
 
-        function updateChart(history, prediction, periodFilter) {
+        // 전체 과거 시세와 예측치를 100% 로드 (데이터 손실 없음)
+        function loadFullChartData(history, prediction) {
             if (!stockChart || !history || history.length === 0) return;
 
-            // 기간별 과거 데이터 슬라이싱
-            let sliceCount = 20; // 1달 기본값
-            if (periodFilter === '1w' || periodFilter === '1d_card') {
-                sliceCount = 5;  // 최근 5영업일
-            } else if (periodFilter === '1m') {
-                sliceCount = 20; // 최근 20영업일 (1달)
-            } else if (periodFilter === '3m') {
-                sliceCount = 60; // 최근 60영업일 (3달)
-            } else if (periodFilter === 'all') {
-                sliceCount = history.length; // 전체 수집 시세
-            }
-
-            const recentHistory = history.slice(-sliceCount);
-            const labels = recentHistory.map(h => formatShortDate(h.date));
-            const actualPrices = recentHistory.map(h => Math.round(Number(h.close_price)));
-            
+            const labels = history.map(h => formatShortDate(h.date));
+            const actualPrices = history.map(h => Math.round(Number(h.close_price)));
             const predPrices = new Array(actualPrices.length).fill(null);
 
             if (prediction && actualPrices.length > 0) {
@@ -1016,35 +991,223 @@
                 const d1wLabel = formatShortDate(prediction.date_1w) + "(1W)";
                 const d1mLabel = formatShortDate(prediction.date_1m) + "(1M)";
 
-                if (periodFilter === '1w' || periodFilter === '1d_card') {
-                    // 1주일 확대 뷰: 1D와 1W까지만 줌인 표시
-                    labels.push(d1dLabel);
-                    predPrices.push(p1d);
-                    actualPrices.push(null);
+                labels.push(d1dLabel);
+                predPrices.push(p1d);
+                actualPrices.push(null);
 
-                    labels.push(d1wLabel);
-                    predPrices.push(p1w);
-                    actualPrices.push(null);
-                } else {
-                    // 1달, 3달, 전체 뷰: 1D -> 1W -> 1M 전체 예측 궤적 연결
-                    labels.push(d1dLabel);
-                    predPrices.push(p1d);
-                    actualPrices.push(null);
+                labels.push(d1wLabel);
+                predPrices.push(p1w);
+                actualPrices.push(null);
 
-                    labels.push(d1wLabel);
-                    predPrices.push(p1w);
-                    actualPrices.push(null);
-
-                    labels.push(d1mLabel);
-                    predPrices.push(p1m);
-                    actualPrices.push(null);
-                }
+                labels.push(d1mLabel);
+                predPrices.push(p1m);
+                actualPrices.push(null);
             }
 
+            totalChartLength = labels.length;
             stockChart.data.labels = labels;
             stockChart.data.datasets[0].data = actualPrices;
             stockChart.data.datasets[1].data = predPrices;
-            stockChart.update();
+        }
+
+        // 기간 선택 필터 버튼 제어 (1주일 / 1달 / 3달 / 1년/전체) -> min/max 스케일 제어
+        function setPeriodFilter(period) {
+            currentPeriodFilter = period;
+
+            // 세그먼트 버튼 활성화 UI
+            const activePeriodKey = (period === '1d_card') ? '1w' : period;
+            ['1w', '1m', '3m', 'all'].forEach(p => {
+                const btn = document.getElementById(`filter-btn-${p}`);
+                if (btn) {
+                    if (p === activePeriodKey) {
+                        btn.className = "period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30";
+                    } else {
+                        btn.className = "period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all";
+                    }
+                }
+            });
+
+            // 하단 예측 카드 하이라이트 연동 (파란색 보더 및 글로우)
+            const activeCards = {
+                '1w': ['1w'],
+                '1d_card': ['1d'],
+                '1m': ['1m'],
+                '3m': ['1m'],
+                'all': []
+            };
+            const highlightTargets = activeCards[period] || [];
+
+            ['1d', '1w', '1m'].forEach(key => {
+                const card = document.getElementById(`card-wrap-${key}`);
+                if (card) {
+                    if (highlightTargets.includes(key)) {
+                        card.classList.add("toss-active-card");
+                    } else {
+                        card.classList.remove("toss-active-card");
+                    }
+                }
+            });
+
+            // 줌 인덱스 계산 (최신 시점 기준)
+            if (totalChartLength > 0) {
+                const lastIdx = totalChartLength - 1;
+                let minIdx = 0;
+                let maxIdx = lastIdx;
+
+                if (period === '1w' || period === '1d_card') {
+                    minIdx = Math.max(0, lastIdx - 8); // 과거 5영업일 + 미래 3영업일
+                } else if (period === '1m') {
+                    minIdx = Math.max(0, lastIdx - 23); // 과거 20영업일 + 미래 3영업일
+                } else if (period === '3m') {
+                    minIdx = Math.max(0, lastIdx - 63); // 과거 60영업일 + 미래 3영업일
+                } else if (period === 'all') {
+                    minIdx = 0;
+                    maxIdx = lastIdx;
+                }
+
+                applyChartZoom(minIdx, maxIdx);
+            }
+        }
+
+        // min/max 인덱스 적용 및 뷰 업데이트
+        function applyChartZoom(minIdx, maxIdx, animationMode = 'default') {
+            if (!stockChart || totalChartLength === 0) return;
+
+            // Bounds Clamping
+            minIdx = Math.max(0, Math.min(minIdx, totalChartLength - 2));
+            maxIdx = Math.min(totalChartLength - 1, Math.max(maxIdx, minIdx + 1));
+
+            currentMinIdx = minIdx;
+            currentMaxIdx = maxIdx;
+
+            if (stockChart.data.labels && stockChart.data.labels.length > 0) {
+                stockChart.options.scales.x.min = stockChart.data.labels[minIdx];
+                stockChart.options.scales.x.max = stockChart.data.labels[maxIdx];
+            }
+
+            // 최신으로 복귀 플로팅 버튼 표시 (과거로 드래그되었을 때)
+            const resetBtn = document.getElementById("chart-reset-btn");
+            if (resetBtn) {
+                if (maxIdx < totalChartLength - 1) {
+                    resetBtn.classList.remove("hidden");
+                } else {
+                    resetBtn.classList.add("hidden");
+                }
+            }
+
+            if (animationMode === 'none') {
+                stockChart.update('none');
+            } else {
+                stockChart.update();
+            }
+        }
+
+        // 최신 시점 뷰로 원클릭 복귀
+        function resetChartToLatest() {
+            setPeriodFilter(currentPeriodFilter);
+        }
+
+        // 마우스 드래그 & 모바일 터치 스와이프 Pan 이벤트 바인딩
+        function bindChartDragPanEvents() {
+            const canvas = document.getElementById("stockChart");
+            if (!canvas) return;
+
+            // 1. Mouse Drag Events (PC)
+            canvas.addEventListener("mousedown", (e) => {
+                if (totalChartLength === 0) return;
+                isDraggingChart = true;
+                dragMoved = false;
+                dragStartX = e.clientX;
+                dragStartMinIdx = currentMinIdx;
+                dragStartMaxIdx = currentMaxIdx;
+                canvas.classList.remove("cursor-grab");
+                canvas.classList.add("cursor-grabbing");
+            });
+
+            window.addEventListener("mousemove", (e) => {
+                if (!isDraggingChart || totalChartLength === 0) return;
+                const deltaX = e.clientX - dragStartX;
+                if (Math.abs(deltaX) > 2) dragMoved = true;
+
+                const chartWidth = canvas.clientWidth || 300;
+                const span = dragStartMaxIdx - dragStartMinIdx;
+                
+                // 오른쪽으로 드래그(+deltaX) -> 과거 데이터로 이동 (인덱스 감소)
+                const indexShift = Math.round((deltaX / chartWidth) * span);
+
+                let newMin = dragStartMinIdx - indexShift;
+                let newMax = dragStartMaxIdx - indexShift;
+
+                // Clamp Boundaries
+                if (newMin < 0) {
+                    newMax += (0 - newMin);
+                    newMin = 0;
+                }
+                if (newMax > totalChartLength - 1) {
+                    newMin -= (newMax - (totalChartLength - 1));
+                    newMax = totalChartLength - 1;
+                }
+                if (newMin < 0) newMin = 0;
+
+                applyChartZoom(newMin, newMax, 'none');
+            });
+
+            window.addEventListener("mouseup", () => {
+                if (isDraggingChart) {
+                    isDraggingChart = false;
+                    canvas.classList.remove("cursor-grabbing");
+                    canvas.classList.add("cursor-grab");
+                }
+            });
+
+            // 2. Touch Swipe Events (Mobile)
+            canvas.addEventListener("touchstart", (e) => {
+                if (e.touches.length === 1 && totalChartLength > 0) {
+                    isDraggingChart = true;
+                    dragMoved = false;
+                    dragStartX = e.touches[0].clientX;
+                    dragStartMinIdx = currentMinIdx;
+                    dragStartMaxIdx = currentMaxIdx;
+                }
+            }, { passive: true });
+
+            canvas.addEventListener("touchmove", (e) => {
+                if (!isDraggingChart || e.touches.length !== 1 || totalChartLength === 0) return;
+                const currentX = e.touches[0].clientX;
+                const deltaX = currentX - dragStartX;
+
+                if (Math.abs(deltaX) > 3) {
+                    dragMoved = true;
+                    if (e.cancelable) e.preventDefault(); // 수평 스와이프 시 기본 브라우저 세로 스크롤 방지
+                }
+
+                const chartWidth = canvas.clientWidth || 300;
+                const span = dragStartMaxIdx - dragStartMinIdx;
+                const indexShift = Math.round((deltaX / chartWidth) * span);
+
+                let newMin = dragStartMinIdx - indexShift;
+                let newMax = dragStartMaxIdx - indexShift;
+
+                if (newMin < 0) {
+                    newMax += (0 - newMin);
+                    newMin = 0;
+                }
+                if (newMax > totalChartLength - 1) {
+                    newMin -= (newMax - (totalChartLength - 1));
+                    newMax = totalChartLength - 1;
+                }
+                if (newMin < 0) newMin = 0;
+
+                applyChartZoom(newMin, newMax, 'none');
+            }, { passive: false });
+
+            canvas.addEventListener("touchend", () => {
+                isDraggingChart = false;
+            });
+
+            canvas.addEventListener("touchcancel", () => {
+                isDraggingChart = false;
+            });
         }
 
         function showLoadingState(isLoading) {
