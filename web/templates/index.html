@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI 주식 분석 및 1D-CNN 시세 예측 대시보드</title>
+    <title>AI 주식 분석 & 1D-CNN 시세 예측 대시보드 (Top 50)</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,7 +56,7 @@
             font-family: 'Outfit', sans-serif;
         }
         .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
+            background: rgba(15, 23, 42, 0.85);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -65,11 +65,10 @@
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.06);
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .glass-card:hover {
-            border-color: rgba(99, 102, 241, 0.3);
-            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.35);
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -83,28 +82,25 @@
             background: #334155;
             border-radius: 3px;
         }
-        .glow-orange {
-            box-shadow: 0 0 20px -5px rgba(249, 115, 22, 0.3);
-        }
-        .glow-blue {
-            box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.3);
+        .glow-active {
+            box-shadow: 0 0 20px -3px rgba(99, 102, 241, 0.4);
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
     <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-50 glass-panel border-b border-slate-800/80 px-4 py-3 sm:px-6">
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 py-3 sm:px-6">
         <div class="max-w-7xl mx-auto flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-500 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-500 to-amber-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
                     <i class="fa-solid fa-chart-line text-white text-lg"></i>
                 </div>
                 <div>
                     <h1 class="text-lg font-bold font-display tracking-tight text-white flex items-center gap-2">
-                        StockAI <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-medium border border-indigo-500/30">1D-CNN</span>
+                        StockAI <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 font-mono font-medium border border-indigo-500/30">Top 50</span>
                     </h1>
-                    <p class="text-xs text-slate-400 hidden sm:block">AI Multi-output Regression Stock Forecast</p>
+                    <p class="text-xs text-slate-400 hidden sm:block">1D-CNN Multi-output 시계열 주가 예측 플랫폼</p>
                 </div>
             </div>
 
@@ -112,7 +108,7 @@
             <div class="flex items-center space-x-3">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span class="hidden sm:inline">실시간 파이프라인</span> 가동중
+                    <span>50개 종목 연동</span>
                 </span>
                 <button onclick="refreshData()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors" title="새로고침">
                     <i id="refresh-icon" class="fa-solid fa-rotate text-sm"></i>
@@ -122,37 +118,95 @@
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 space-y-5">
 
-        <!-- Stock Selector Tabs (Mobile scrollable) -->
-        <div class="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar border-b border-slate-800/60">
-            {% for stock in stocks %}
-            <button 
-                onclick="selectStock('{{ stock.code }}', '{{ stock.name }}')"
-                id="tab-{{ stock.code }}"
-                class="stock-tab px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 flex items-center gap-2 border {% if stock.code == default_stock %}bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30{% else %}bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800/80{% endif %}">
-                <span class="w-2 h-2 rounded-full {% if stock.code == default_stock %}bg-amber-400{% else %}bg-slate-600{% endif %}"></span>
-                <span>{{ stock.name }}</span>
-                <span class="font-mono text-xs opacity-75">({{ stock.code }})</span>
-            </button>
-            {% endfor %}
+        <!-- Mobile Optimized Searchable Stock Selector & Quick Badges -->
+        <div class="space-y-3">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                
+                <!-- Searchable Select Dropdown Button -->
+                <div class="relative flex-1 max-w-xl">
+                    <button 
+                        id="dropdown-trigger-btn"
+                        onclick="toggleStockDropdown()"
+                        class="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-slate-900 border border-slate-700/80 text-left shadow-lg hover:border-indigo-500/50 transition-all">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-xs">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </span>
+                            <div>
+                                <div class="text-xs text-slate-400">분석 종목 선택 (50개사)</div>
+                                <div class="text-base font-bold text-white flex items-center gap-2">
+                                    <span id="selected-stock-display-name">{{ default_stock_name }}</span>
+                                    <span id="selected-stock-display-code" class="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">({{ default_stock }})</span>
+                                </div>
+                            </div>
+                        </div>
+                        <i id="dropdown-chevron" class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                    </button>
+
+                    <!-- Dropdown Menu / Search Panel -->
+                    <div 
+                        id="stock-dropdown-panel"
+                        class="hidden absolute left-0 right-0 top-full mt-2 z-50 bg-slate-900/95 border border-slate-700 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden animate-fadeIn">
+                        
+                        <!-- Search Box Inside Dropdown -->
+                        <div class="p-3 border-b border-slate-800 sticky top-0 bg-slate-900/95">
+                            <div class="relative">
+                                <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400 text-xs"></i>
+                                <input 
+                                    type="text" 
+                                    id="stock-search-input"
+                                    oninput="filterStockList(this.value)"
+                                    placeholder="종목명 또는 코드 검색 (예: 현대, 005930)..."
+                                    class="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans"
+                                    autocomplete="off">
+                            </div>
+                        </div>
+
+                        <!-- 50 Stocks Scrollable List -->
+                        <div id="stock-items-container" class="max-h-64 sm:max-h-80 overflow-y-auto p-2 space-y-1">
+                            {% for stock in stocks %}
+                            <button 
+                                onclick="onSelectStock('{{ stock.code }}', '{{ stock.name }}')"
+                                data-code="{{ stock.code }}"
+                                data-name="{{ stock.name }}"
+                                class="stock-item-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-sm transition-colors hover:bg-indigo-600/20 hover:text-indigo-200 {% if stock.code == default_stock %}bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/40{% else %}text-slate-300{% endif %}">
+                                <span class="stock-item-name">{{ stock.name }}</span>
+                                <span class="font-mono text-xs text-slate-400">{{ stock.code }}</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Major Stock Badges (Desktop & Mobile Scroll) -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar sm:justify-end">
+                    <span class="text-xs text-slate-500 whitespace-nowrap mr-1">대표:</span>
+                    <button onclick="onSelectStock('005930', '삼성전자')" class="quick-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500 whitespace-nowrap">삼성전자</button>
+                    <button onclick="onSelectStock('000660', 'SK하이닉스')" class="quick-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500 whitespace-nowrap">SK하이닉스</button>
+                    <button onclick="onSelectStock('373220', 'LG에너지솔루션')" class="quick-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500 whitespace-nowrap">LG에너지솔루션</button>
+                    <button onclick="onSelectStock('005380', '현대차')" class="quick-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500 whitespace-nowrap">현대차</button>
+                    <button onclick="onSelectStock('035420', 'NAVER')" class="quick-btn px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-indigo-500 whitespace-nowrap">NAVER</button>
+                </div>
+            </div>
         </div>
 
         <!-- Header Information for Selected Stock -->
-        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2">
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-1 pb-2">
             <div>
                 <div class="flex items-center gap-3">
-                    <h2 id="current-stock-name" class="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">삼성전자</h2>
-                    <span id="current-stock-code" class="text-sm font-mono text-slate-400 px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700">005930</span>
+                    <h2 id="current-stock-name" class="text-2xl sm:text-3xl font-bold font-display text-white tracking-tight">{{ default_stock_name }}</h2>
+                    <span id="current-stock-code" class="text-xs sm:text-sm font-mono text-slate-400 px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700">{{ default_stock }}</span>
                 </div>
                 <p class="text-xs text-slate-400 mt-1 flex items-center gap-2">
                     <i class="fa-regular fa-calendar-check text-slate-500"></i>
                     기준일자: <span id="current-base-date" class="font-mono text-slate-300 font-medium">-</span>
                     <span class="text-slate-600">|</span>
-                    <span class="text-slate-400">학습 윈도우: 과거 30영업일</span>
+                    <span class="text-slate-400">1D-CNN 과거 30영업일 학습</span>
                 </p>
             </div>
-            <div class="text-right sm:text-right flex sm:flex-col justify-between sm:justify-end items-center sm:items-end">
+            <div class="text-left sm:text-right flex sm:flex-col justify-between sm:justify-end items-baseline sm:items-end">
                 <span class="text-xs text-slate-400">최근 종가</span>
                 <div class="flex items-baseline gap-2">
                     <span id="current-price-val" class="text-2xl sm:text-3xl font-extrabold font-mono text-white tracking-tight">- KRW</span>
@@ -160,7 +214,7 @@
             </div>
         </div>
 
-        <!-- 4 Summary Prediction Cards (Responsive Grid: 1 col on Mobile, 4 col on Large) -->
+        <!-- 4 Summary Prediction Cards (Mobile 1 Col, Responsive Grid) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
             <!-- Card 1: 기준 종가 -->
@@ -245,20 +299,20 @@
                     <h3 class="text-base font-bold text-white tracking-tight">과거 시세 및 1D-CNN 예측 트렌드 차트</h3>
                 </div>
                 
-                <!-- Chart Legends & Details -->
+                <!-- Chart Legends -->
                 <div class="flex items-center flex-wrap gap-4 text-xs">
                     <div class="flex items-center gap-2">
                         <span class="w-3.5 h-1 bg-blue-500 rounded-full inline-block"></span>
-                        <span class="text-slate-300">실제 종가 (Blue Line)</span>
+                        <span class="text-slate-300">실제 종가</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="w-4 h-0.5 border-t-2 border-dashed border-orange-500 inline-block"></span>
-                        <span class="text-amber-400 font-medium">1D-CNN 예측치 (Orange Dashed)</span>
+                        <span class="text-amber-400 font-medium">1D-CNN 예측치 (1D, 1W, 1M)</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Chart Canvas Container (Responsive Height) -->
+            <!-- Chart Canvas Container -->
             <div class="relative w-full h-[320px] sm:h-[420px]">
                 <canvas id="stockChart"></canvas>
             </div>
@@ -267,55 +321,52 @@
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-800/60">
                 <div class="flex items-center gap-1.5">
                     <i class="fa-solid fa-circle-info text-indigo-400"></i>
-                    <span>차트의 주황색 점선은 마지막 실제 종가 지점부터 모델이 산출한 [1일, 1주(5일), 1달(20일)] 예측 지점을 부드럽게 연결합니다.</span>
+                    <span>주황색 점선은 마지막 실제 종가 지점부터 모델이 추정한 [1일 뒤, 5일 뒤(1주), 20일 뒤(1달)] 예측 지점을 연결합니다.</span>
                 </div>
                 <span class="font-mono text-slate-400" id="data-count-label">데이터: 0 건</span>
             </div>
         </div>
 
-        <!-- AI Model Insights & System Info -->
+        <!-- Pipeline Overview Card -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="glass-card p-5 rounded-2xl md:col-span-2 space-y-3">
                 <h4 class="text-sm font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-microchip text-indigo-400"></i>
-                    PyTorch 1D-CNN 다중 회귀 모델 사양
+                    50대 주요 종목 1D-CNN 다중 회귀 모델
                 </h4>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-slate-400 pt-1">
                     <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                        <div class="text-slate-500">입력 형태 (Input)</div>
+                        <div class="text-slate-500">입력 윈도우 (X)</div>
                         <div class="font-mono text-slate-200 font-semibold mt-1">30 영업일 종가 (1D)</div>
                     </div>
                     <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-                        <div class="text-slate-500">출력 형태 (Output)</div>
-                        <div class="font-mono text-amber-400 font-semibold mt-1">3개 시점 (1d, 1w, 1m)</div>
+                        <div class="text-slate-500">출력 예측치 (Y)</div>
+                        <div class="font-mono text-amber-400 font-semibold mt-1">[1일, 1주, 1달] 동시 추정</div>
                     </div>
                     <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
-                        <div class="text-slate-500">신경망 구조</div>
-                        <div class="font-mono text-indigo-300 font-semibold mt-1">Conv1D + BatchNorm + Regressor</div>
+                        <div class="text-slate-500">분석 대상</div>
+                        <div class="font-mono text-indigo-300 font-semibold mt-1">국내 시총 상위 50개사</div>
                     </div>
                 </div>
-                <p class="text-xs text-slate-400 leading-relaxed">
-                    본 모델은 30영업일간의 주가 패턴(국소 특징 및 모멘텀)을 1차원 컨볼루션 필터로 추출하여 1일 뒤, 5일 뒤(1주), 20일 뒤(1달) 종가를 동시에 회귀 추정합니다.
-                </p>
             </div>
 
             <div class="glass-card p-5 rounded-2xl space-y-3">
                 <h4 class="text-sm font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-server text-emerald-400"></i>
-                    파이프라인 아키텍처
+                    시스템 가동 현황
                 </h4>
                 <ul class="text-xs space-y-2 text-slate-400">
                     <li class="flex items-center gap-2">
                         <i class="fa-solid fa-check text-emerald-400"></i>
-                        <span><strong>크롤러:</strong> 네이버 증권 3개 컬럼 추출</span>
+                        <span><strong>크롤러:</strong> 50개 종목 120영업일 수집</span>
                     </li>
                     <li class="flex items-center gap-2">
                         <i class="fa-solid fa-check text-emerald-400"></i>
-                        <span><strong>저장소:</strong> SQLite & Excel 동시 백업</span>
+                        <span><strong>저장소:</strong> SQLite & 엑셀 백업</span>
                     </li>
                     <li class="flex items-center gap-2">
                         <i class="fa-solid fa-check text-emerald-400"></i>
-                        <span><strong>백엔드:</strong> FastAPI & Chart.js 비동기 시각화</span>
+                        <span><strong>네트워크:</strong> Cloudflare HTTPS 터널</span>
                     </li>
                 </ul>
             </div>
@@ -324,10 +375,10 @@
     </main>
 
     <!-- Footer -->
-    <footer class="glass-panel border-t border-slate-800/80 mt-12 py-4 px-4 sm:px-6 text-center text-xs text-slate-500">
+    <footer class="glass-panel border-t border-slate-800/80 mt-10 py-4 px-4 sm:px-6 text-center text-xs text-slate-500">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
             <span>© 2026 Stock Analysis & 1D-CNN Prediction Platform. All rights reserved.</span>
-            <span class="font-mono text-slate-400">Single-developer Pipeline Prototype</span>
+            <span class="font-mono text-slate-400">Top 50 KOSPI/KOSDAQ Pipeline</span>
         </div>
     </footer>
 
@@ -340,26 +391,71 @@
         document.addEventListener("DOMContentLoaded", () => {
             initChart();
             loadStockData(currentStockCode, currentStockName);
+
+            // 외부 클릭 시 드롭다운 닫기
+            document.addEventListener("click", (e) => {
+                const panel = document.getElementById("stock-dropdown-panel");
+                const btn = document.getElementById("dropdown-trigger-btn");
+                if (!panel.contains(e.target) && !btn.contains(e.target)) {
+                    closeStockDropdown();
+                }
+            });
         });
 
-        function selectStock(code, name) {
+        function toggleStockDropdown() {
+            const panel = document.getElementById("stock-dropdown-panel");
+            const chevron = document.getElementById("dropdown-chevron");
+            const isHidden = panel.classList.contains("hidden");
+
+            if (isHidden) {
+                panel.classList.remove("hidden");
+                chevron.classList.add("rotate-180");
+                const searchInput = document.getElementById("stock-search-input");
+                setTimeout(() => searchInput.focus(), 50);
+            } else {
+                closeStockDropdown();
+            }
+        }
+
+        function closeStockDropdown() {
+            const panel = document.getElementById("stock-dropdown-panel");
+            const chevron = document.getElementById("dropdown-chevron");
+            panel.classList.add("hidden");
+            chevron.classList.remove("rotate-180");
+        }
+
+        function filterStockList(query) {
+            const q = query.trim().toLowerCase();
+            const items = document.querySelectorAll(".stock-item-btn");
+            items.forEach(item => {
+                const name = item.getAttribute("data-name").toLowerCase();
+                const code = item.getAttribute("data-code").toLowerCase();
+                if (name.includes(q) || code.includes(q)) {
+                    item.style.display = "flex";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+
+        function onSelectStock(code, name) {
             currentStockCode = code;
             currentStockName = name;
 
-            // 탭 스타일 갱신
-            document.querySelectorAll(".stock-tab").forEach(tab => {
-                tab.className = "stock-tab px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 flex items-center gap-2 border bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800/80";
-                const dot = tab.querySelector("span");
-                if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-600";
+            // 드롭다운 헤더 텍스트 갱신
+            document.getElementById("selected-stock-display-name").innerText = name;
+            document.getElementById("selected-stock-display-code").innerText = `(${code})`;
+
+            // 드롭다운 아이템 활성 상태 갱신
+            document.querySelectorAll(".stock-item-btn").forEach(item => {
+                if (item.getAttribute("data-code") === code) {
+                    item.className = "stock-item-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-sm transition-colors bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/40";
+                } else {
+                    item.className = "stock-item-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-sm transition-colors hover:bg-indigo-600/20 hover:text-indigo-200 text-slate-300";
+                }
             });
 
-            const activeTab = document.getElementById(`tab-${code}`);
-            if (activeTab) {
-                activeTab.className = "stock-tab px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-200 flex items-center gap-2 border bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30";
-                const dot = activeTab.querySelector("span");
-                if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400";
-            }
-
+            closeStockDropdown();
             loadStockData(code, name);
         }
 
@@ -374,7 +470,6 @@
                 renderStockData(data);
             } catch (err) {
                 console.error("데이터 로드 실패:", err);
-                alert("주식 데이터를 불러오는데 실패했습니다. 크롤러가 실행되었는지 확인해주세요.");
             } finally {
                 showLoadingState(false);
             }
@@ -414,7 +509,7 @@
                 formatChangeBadge("card-change-1m", pred.change_1m_pct);
             } else {
                 ["1d", "1w", "1m"].forEach(key => {
-                    document.getElementById(`card-pred-${key}`).innerText = "예측 필요";
+                    document.getElementById(`card-pred-${key}`).innerText = "학습 중";
                     document.getElementById(`card-date-${key}`).innerText = "-";
                     document.getElementById(`card-change-${key}`).innerText = "-";
                 });
@@ -442,7 +537,6 @@
         function initChart() {
             const ctx = document.getElementById("stockChart").getContext("2d");
 
-            // Chart.js Gradient Fill
             const blueGradient = ctx.createLinearGradient(0, 0, 0, 400);
             blueGradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
             blueGradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
@@ -554,20 +648,16 @@
         function updateChart(history, prediction) {
             if (!stockChart) return;
 
-            // 최근 80개 데이터 표시 (너무 길면 가독성 저하 방지)
             const recentHistory = history.slice(-80);
             
             const labels = recentHistory.map(h => h.date);
             const actualPrices = recentHistory.map(h => h.close_price);
             
-            // 예측 데이터셋 준비: 과거 구간은 null로 채우고, 기준일 종가부터 예측값들을 연결
             const predPrices = new Array(actualPrices.length).fill(null);
 
             if (prediction && actualPrices.length > 0) {
-                // 마지막 실제 데이터 지점에 기준가 할당 (연결점)
                 predPrices[predPrices.length - 1] = actualPrices[actualPrices.length - 1];
 
-                // 미래 예측 포인트 라벨 및 데이터 추가
                 labels.push(prediction.date_1d + " (1D)");
                 predPrices.push(prediction.pred_1d);
                 actualPrices.push(null);

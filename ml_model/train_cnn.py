@@ -206,18 +206,15 @@ def prepare_sliding_windows(prices: np.ndarray, window_size: int = 30) -> Tuple[
 
     return np.array(X, dtype=np.float32), np.array(Y, dtype=np.float32), min_val, range_val
 
-def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict[str, Any]]:
+def train_and_predict_stock(stock_code: str, epochs: int = 30) -> Optional[Dict[str, Any]]:
     """
     특정 종목의 데이터를 로드하여 1D-CNN 모델을 학습하고
     최신 30일 종가를 바탕으로 미래 3개 시점(1d, 1w, 1m)을 예측하여 DB에 적재합니다.
     """
     stock_name = STOCK_INFO.get(stock_code, stock_code)
-    print(f"\n==========================================")
-    print(f"[*] Training 1D-CNN for {stock_name} ({stock_code})...")
 
     data = get_daily_prices(stock_code)
     if len(data) < 55:
-        print(f"[-] Insufficient data for {stock_code}. Need at least 55 records, got {len(data)}")
         return None
 
     df = pd.DataFrame(data)
@@ -229,12 +226,10 @@ def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict
 
     X, Y, min_val, range_val = prepare_sliding_windows(prices, window_size=30)
     if len(X) == 0:
-        print(f"[-] Could not create windows for {stock_code}")
         return None
 
-    # 1D-CNN 학습 진행
+    # 1D-CNN 학습 진행 (고속 벡터화 또는 PyTorch)
     if TORCH_AVAILABLE:
-        print("    [Engine: PyTorch 1D-CNN]")
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = StockCNN1D(input_len=30, output_dim=3).to(device)
         dataset = TimeSeriesStockDataset(X, Y)
@@ -244,7 +239,6 @@ def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict
 
         model.train()
         for epoch in range(1, epochs + 1):
-            total_loss = 0.0
             for batch_x, batch_y in dataloader:
                 batch_x, batch_y = batch_x.to(device), batch_y.to(device)
                 optimizer.zero_grad()
@@ -252,9 +246,6 @@ def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict
                 loss = criterion(preds, batch_y)
                 loss.backward()
                 optimizer.step()
-                total_loss += loss.item() * len(batch_x)
-            if epoch % 40 == 0 or epoch == epochs:
-                print(f"    Epoch [{epoch:03d}/{epochs:03d}] - Loss (MSE): {total_loss / len(dataset):.6f}")
 
         model.eval()
         latest_30_raw = prices[-30:]
@@ -263,9 +254,8 @@ def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict
         with torch.no_grad():
             pred_scaled = model(input_tensor).cpu().numpy()[0]
     else:
-        print("    [Engine: High-Performance 1D-CNN Multi-output Regressor]")
         model = Vectorized1DCNN(input_len=30, num_filters=16, kernel_size=3, hidden_dim=32, output_dim=3)
-        model.fit(X, Y, epochs=epochs, lr=0.008)
+        model.fit(X, Y, epochs=epochs, lr=0.01)
 
         latest_30_raw = prices[-30:]
         latest_30_scaled = (latest_30_raw - min_val) / range_val
@@ -284,14 +274,10 @@ def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict
 
     # DB에 예측치 적재
     pred_id = save_prediction(stock_code, base_date, pred_1d, pred_1w, pred_1m)
-    print(f"[+] Prediction Saved (ID: {pred_id}) for {stock_name} ({stock_code})")
-    print(f"    Base Date    : {base_date} (Close: {current_price:,.0f} KRW)")
-    print(f"    1-Day  Pred  : {pred_1d:,.0f} KRW ({(pred_1d - current_price) / current_price * 100:+.2f}%)")
-    print(f"    1-Week Pred  : {pred_1w:,.0f} KRW ({(pred_1w - current_price) / current_price * 100:+.2f}%)")
-    print(f"    1-Month Pred : {pred_1m:,.0f} KRW ({(pred_1m - current_price) / current_price * 100:+.2f}%)")
 
     return {
         "stock_code": stock_code,
+        "stock_name": stock_name,
         "base_date": base_date,
         "current_price": current_price,
         "pred_1d": pred_1d,
@@ -299,16 +285,35 @@ def train_and_predict_stock(stock_code: str, epochs: int = 120) -> Optional[Dict
         "pred_1m": pred_1m
     }
 
-def train_all_stocks():
-    """모든 종목에 대해 1D-CNN 학습 및 예측치 DB 적재를 수행합니다."""
+def train_all_stocks(epochs: int = 30):
+    """50개 전체 종목에 대해 1D-CNN 배치 학습 및 예측치 DB 적재를 수행합니다."""
     init_db()
     results = {}
-    for code in STOCK_INFO.keys():
-        res = train_and_predict_stock(code)
-        if res:
-            results[code] = res
-    print("\n[v] Finished 1D-CNN training & prediction for all stocks.")
+    total_stocks = len(STOCK_INFO)
+    print("=" * 70)
+    print(f"[*] 50대 주요 종목 1D-CNN 배치 학습 시작 (Epochs: {epochs})...")
+    print("=" * 70)
+
+    for idx, (code, name) in enumerate(STOCK_INFO.items(), 1):
+        try:
+            res = train_and_predict_stock(code, epochs=epochs)
+            if res:
+                results[code] = res
+                c_price = res["current_price"]
+                p1d, p1w, p1m = res["pred_1d"], res["pred_1w"], res["pred_1m"]
+                d1_pct = (p1d - c_price) / c_price * 100
+                w1_pct = (p1w - c_price) / c_price * 100
+                m1_pct = (p1m - c_price) / c_price * 100
+                print(f"[{idx:02d}/{total_stocks}] [OK] {name}({code}) 학습 및 예측 완료: 1D({d1_pct:+.1f}%), 1W({w1_pct:+.1f}%), 1M({m1_pct:+.1f}%)")
+            else:
+                print(f"[{idx:02d}/{total_stocks}] ⚠️  {name}({code}): 시세 데이터 부족 (최소 55건 필요)")
+        except Exception as e:
+            print(f"[{idx:02d}/{total_stocks}] [ERR] {name}({code}) 학습 오류: {e}")
+
+    print("=" * 70)
+    print(f"[v] 1D-CNN 배치 학습 완료: {len(results)}/{total_stocks} 종목 DB 적재 성공.")
+    print("=" * 70)
     return results
 
 if __name__ == "__main__":
-    train_all_stocks()
+    train_all_stocks(epochs=30)

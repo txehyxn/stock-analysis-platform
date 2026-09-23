@@ -9,7 +9,54 @@ DATABASE_URL = os.getenv("DATABASE_URL", None)
 STOCK_INFO = {
     "005930": "삼성전자",
     "000660": "SK하이닉스",
+    "373220": "LG에너지솔루션",
+    "207940": "삼성바이오로직스",
     "005380": "현대차",
+    "000270": "기아",
+    "068270": "셀트리온",
+    "105560": "KB금융",
+    "035420": "NAVER",
+    "055550": "신한지주",
+    "005490": "POSCO홀딩스",
+    "012330": "현대모비스",
+    "028260": "삼성물산",
+    "035720": "카카오",
+    "006400": "삼성SDI",
+    "051910": "LG화학",
+    "086790": "하나금융지주",
+    "138040": "메리츠금융지주",
+    "011200": "HMM",
+    "010130": "고려아연",
+    "033780": "KT&G",
+    "032830": "삼성생명",
+    "259960": "크래프톤",
+    "012450": "한화에어로스페이스",
+    "003670": "포스코퓨처엠",
+    "323410": "카카오뱅크",
+    "015760": "한국전력",
+    "450080": "에코프로머티",
+    "030200": "KT",
+    "096770": "SK이노베이션",
+    "402340": "SK스퀘어",
+    "034020": "두산에너빌리티",
+    "352820": "하이브",
+    "041510": "에스엠",
+    "329180": "HD현대중공업",
+    "267260": "HD현대일렉트릭",
+    "316140": "우리금융지주",
+    "066570": "LG전자",
+    "247540": "에코프로비엠",
+    "086520": "에코프로",
+    "028300": "HLB",
+    "196170": "알테오젠",
+    "036570": "엔씨소프트",
+    "251270": "넷마블",
+    "263750": "펄어비스",
+    "042700": "한미반도체",
+    "058470": "리노공업",
+    "277810": "레인보우로보틱스",
+    "328130": "루닛",
+    "035900": "JYP Ent."
 }
 
 def get_connection():
@@ -44,7 +91,7 @@ def init_db():
 
 def save_daily_prices(df: pd.DataFrame) -> int:
     """
-    일별 시세 데이터프레임(stock_code, date, close_price)을 데이터베이스에 UPSERT 적재합니다.
+    일별 시세 데이터프레임(stock_code, date, close_price)을 데이터베이스에 UPSERT 일괄(executemany) 적재합니다.
     """
     if df.empty:
         return 0
@@ -53,30 +100,31 @@ def save_daily_prices(df: pd.DataFrame) -> int:
     conn = get_connection()
     inserted_count = 0
 
+    rows_to_insert = []
+    for _, row in df.iterrows():
+        stock_code = str(row["stock_code"]).zfill(6)
+        date_val = str(row["date"]).strip()
+        close_price = float(row["close_price"])
+        rows_to_insert.append((stock_code, date_val, close_price))
+
     try:
         cursor = conn.cursor()
-        for _, row in df.iterrows():
-            stock_code = str(row["stock_code"]).zfill(6)
-            date_val = str(row["date"]).strip()
-            close_price = float(row["close_price"])
-
-            # SQLite의 INSERT OR REPLACE
-            if isinstance(conn, sqlite3.Connection):
-                cursor.execute("""
-                    INSERT INTO stock_daily_price (stock_code, date, close_price)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(stock_code, date) DO UPDATE SET close_price=excluded.close_price
-                """, (stock_code, date_val, close_price))
-            else:
-                # PostgreSQL
-                cursor.execute("""
-                    INSERT INTO stock_daily_price (stock_code, date, close_price)
-                    VALUES (%s, %s, %s)
-                    ON CONFLICT (stock_code, date) DO UPDATE SET close_price = EXCLUDED.close_price
-                """, (stock_code, date_val, close_price))
-            inserted_count += 1
-
+        if isinstance(conn, sqlite3.Connection):
+            cursor.executemany("""
+                INSERT INTO stock_daily_price (stock_code, date, close_price)
+                VALUES (?, ?, ?)
+                ON CONFLICT(stock_code, date) DO UPDATE SET close_price=excluded.close_price
+            """, rows_to_insert)
+        else:
+            # PostgreSQL
+            cursor.executemany("""
+                INSERT INTO stock_daily_price (stock_code, date, close_price)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (stock_code, date) DO UPDATE SET close_price = EXCLUDED.close_price
+            """, rows_to_insert)
+        
         conn.commit()
+        inserted_count = len(rows_to_insert)
     finally:
         conn.close()
 

@@ -17,17 +17,19 @@ HEADERS = {
 }
 EXCEL_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "excel")
 
-def fetch_stock_daily_prices(stock_code: str, pages: int = 10, page_size: int = 20) -> pd.DataFrame:
+# 50대 주요 종목 매핑 정의
+TARGET_STOCKS = STOCK_INFO
+
+def fetch_stock_daily_prices(stock_code: str, target_days: int = 120) -> pd.DataFrame:
     """
-    네이버 증권에서 특정 종목의 일별 시세를 크롤링합니다.
-    오직 'stock_code', 'date', 'close' 컬럼만 추출하고 날짜 오름차순으로 정렬합니다.
+    네이버 증권에서 특정 종목의 최근 약 120영업일 일별 시세를 크롤링합니다.
+    오직 'stock_code', 'date', 'close' 3개 컬럼만 추출하고 날짜 오름차순으로 정렬합니다.
     """
     records = []
-    stock_name = STOCK_INFO.get(stock_code, stock_code)
-    print(f"[*] Crawling {stock_name} ({stock_code}) - {pages} pages ({pages * page_size} days max)...")
+    page_size = 20
+    pages_needed = (target_days + page_size - 1) // page_size # 120일 -> 6페이지 (20개씩)
 
-    # 1. 네이버 증권 모바일 API 우선 시도
-    for page in range(1, pages + 1):
+    for page in range(1, pages_needed + 1):
         url = f"https://m.stock.naver.com/api/stock/{stock_code}/price?pageSize={page_size}&page={page}"
         try:
             resp = requests.get(url, headers=HEADERS, timeout=10)
@@ -40,23 +42,22 @@ def fetch_stock_daily_prices(stock_code: str, pages: int = 10, page_size: int = 
                     date_val = item.get("localTradedAt")
                     close_raw = item.get("closePrice")
                     if date_val and close_raw:
-                        # 콤마 제거 및 float 변환
                         close_clean = float(str(close_raw).replace(",", ""))
                         records.append({
-                            "stock_code": stock_code,
+                            "stock_code": str(stock_code).zfill(6),
                             "date": date_val,
                             "close": close_clean
                         })
-                time.sleep(0.05)
+                # 페이지당 0.15초 대기 (차단 방지)
+                time.sleep(0.15)
             else:
-                print(f"[-] API status {resp.status_code} on page {page}")
+                time.sleep(0.15)
         except Exception as e:
-            print(f"[-] Error fetching API on page {page}: {e}")
+            time.sleep(0.15)
 
-    # Fallback: 만약 API 응답이 없으면 레거시 HTML 파싱 시도
+    # Fallback: API 응답이 없을 경우 HTML 파싱 시도
     if not records:
-        print("[*] Trying fallback HTML parser...")
-        for page in range(1, pages + 1):
+        for page in range(1, 13):
             url = f"{HTML_URL}?code={stock_code}&page={page}"
             try:
                 resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
@@ -70,17 +71,17 @@ def fetch_stock_daily_prices(stock_code: str, pages: int = 10, page_size: int = 
                             if d_txt and c_txt:
                                 try:
                                     records.append({
-                                        "stock_code": stock_code,
+                                        "stock_code": str(stock_code).zfill(6),
                                         "date": d_txt,
                                         "close": float(c_txt)
                                     })
                                 except ValueError:
                                     pass
-            except Exception as e:
-                print(f"[-] Fallback error: {e}")
+                time.sleep(0.15)
+            except Exception:
+                time.sleep(0.15)
 
     if not records:
-        print(f"[-] No records found for {stock_code}")
         return pd.DataFrame(columns=["stock_code", "date", "close"])
 
     # DataFrame 생성 및 오직 3개 컬럼만 유지
@@ -96,40 +97,58 @@ def save_to_excel(df: pd.DataFrame, stock_code: str) -> str:
     os.makedirs(EXCEL_DIR, exist_ok=True)
     file_path = os.path.join(EXCEL_DIR, f"stock_{stock_code}.xlsx")
     df.to_excel(file_path, index=False, engine="openpyxl")
-    print(f"[+] Saved Excel backup to {file_path} ({len(df)} rows)")
     return file_path
 
-def crawl_and_store_all(pages: int = 10, page_size: int = 20):
+def crawl_and_store_all(target_days: int = 120):
     """
-    모든 대상 종목(삼성전자, SK하이닉스, 현대차)을 크롤링하고
-    1) 엑셀 백업 저장 (stock_code, date, close)
-    2) 데이터베이스(stock_daily_price)에 적재합니다.
+    50개 주요 종목을 순회하며 일별 시세 수집, 엑셀 백업, DB 일괄 적재를 수행합니다.
     """
     init_db()
-    total_loaded = 0
+    total_stocks = len(TARGET_STOCKS)
+    success_count = 0
+    total_records = 0
 
-    for code in STOCK_INFO.keys():
-        df = fetch_stock_daily_prices(code, pages=pages, page_size=page_size)
-        if df.empty:
+    print("=" * 70)
+    print(f"[*] 국내 시가총액 상위 {total_stocks}개 종목 시세 수집 시작 (종목당 최근 {target_days}영업일)...")
+    print("=" * 70)
+
+    for idx, (code, name) in enumerate(TARGET_STOCKS.items(), 1):
+        try:
+            # 1. 시세 크롤링
+            df = fetch_stock_daily_prices(code, target_days=target_days)
+            if df.empty:
+                print(f"[{idx:02d}/{total_stocks}] ⚠️  {name}({code}): 수집 데이터 없음")
+                continue
+
+            # 2. 엑셀 백업 저장 (stock_code, date, close)
+            save_to_excel(df, code)
+
+            # 3. DB 일괄 적재 (executemany)
+            db_df = df.rename(columns={"close": "close_price"})
+            count = save_daily_prices(db_df)
+            total_records += count
+            success_count += 1
+
+            print(f"[{idx:02d}/{total_stocks}] [OK] {name}({code}): {count}건 수집 -> 엑셀/DB 적재 완료")
+
+            # 종목 전환 시 0.25초 대기 (네이버 부하 방지)
+            time.sleep(0.25)
+
+        except Exception as e:
+            print(f"[{idx:02d}/{total_stocks}] [ERR] {name}({code}) 처리 중 오류 발생: {e}")
+            time.sleep(0.25)
             continue
 
-        # 1. 엑셀 백업 저장
-        save_to_excel(df, code)
-
-        # 2. DB 적재 (컬럼명 close -> close_price 매핑)
-        db_df = df.rename(columns={"close": "close_price"})
-        count = save_daily_prices(db_df)
-        total_loaded += count
-        print(f"[+] Loaded {count} rows into DB for {code}")
-
-    print(f"\n[v] Completed all crawling and DB loading. Total records updated: {total_loaded}")
+    print("=" * 70)
+    print(f"[v] 50개 종목 수집 완료: 성공 {success_count}/{total_stocks} 종목 (총 {total_records:,}건 적재)")
+    print("=" * 70)
 
 if __name__ == "__main__":
-    pages = 10
+    target_days = 120
     if len(sys.argv) > 1:
         try:
-            pages = int(sys.argv[1])
+            target_days = int(sys.argv[1])
         except ValueError:
             pass
-    crawl_and_store_all(pages=pages)
+    crawl_and_store_all(target_days=target_days)
 
