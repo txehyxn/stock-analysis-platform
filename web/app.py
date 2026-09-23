@@ -17,6 +17,7 @@ from database.db_manager import (
     get_daily_prices, 
     get_latest_prediction, 
     get_stock_list, 
+    get_all_latest_rankings,
     STOCK_INFO,
     init_db
 )
@@ -183,6 +184,18 @@ async def api_stock_detail(stock_code: str):
         "history": history,
         "prediction": prediction_data
     }
+
+@app.get("/api/ranking")
+async def api_stock_ranking():
+    """
+    50대 주요 종목 1D-CNN 예측치 기반 랭킹 큐레이션 데이터를 반환합니다.
+    - hero_stock: 오늘의 AI 슈퍼픽 (1주일 예상 상승률 1위)
+    - top_1m: 1달 급등 기대주 TOP 5
+    - top_1w: 1주일 단기 모멘텀 TOP 5
+    - caution_down: 1달 숨고르기/조정 주의 TOP 3
+    """
+    rankings = get_all_latest_rankings()
+    return rankings
 
 @app.post("/api/pipeline/run")
 async def trigger_pipeline(background_tasks: BackgroundTasks):

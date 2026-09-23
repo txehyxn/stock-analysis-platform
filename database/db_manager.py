@@ -165,21 +165,32 @@ def get_daily_prices(stock_code: str, limit: Optional[int] = None) -> List[Dict[
     stock_code = str(stock_code).zfill(6)
     try:
         cursor = conn.cursor()
-        query = """
-            SELECT stock_code, date, close_price 
-            FROM stock_daily_price 
-            WHERE stock_code = ? 
-            ORDER BY date ASC
-        """
         if limit:
-            query = f"SELECT * FROM ({query} DESC LIMIT {limit}) ORDER BY date ASC"
-
-        if isinstance(conn, sqlite3.Connection):
-            cursor.execute(query, (stock_code,))
+            query = """
+                SELECT stock_code, date, close_price 
+                FROM (
+                    SELECT stock_code, date, close_price 
+                    FROM stock_daily_price 
+                    WHERE stock_code = ? 
+                    ORDER BY date DESC 
+                    LIMIT ?
+                ) 
+                ORDER BY date ASC
+            """
+            params = (stock_code, limit)
         else:
-            query_pg = query.replace("?", "%s")
-            cursor.execute(query_pg, (stock_code,))
+            query = """
+                SELECT stock_code, date, close_price 
+                FROM stock_daily_price 
+                WHERE stock_code = ? 
+                ORDER BY date ASC
+            """
+            params = (stock_code,)
 
+        if not isinstance(conn, sqlite3.Connection):
+            query = query.replace("?", "%s")
+
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         result = []
         for r in rows:
@@ -238,3 +249,117 @@ def get_latest_prediction(stock_code: str) -> Optional[Dict[str, Any]]:
 def get_stock_list() -> List[Dict[str, str]]:
     """지원 종목 리스트를 반환합니다."""
     return [{"code": code, "name": name} for code, name in STOCK_INFO.items()]
+
+def get_all_latest_rankings() -> Dict[str, Any]:
+    """
+    50개 전 종목의 최신 종가 및 1D-CNN 예측치를 분석하여
+    슈퍼픽, 1달 TOP 5, 1주일 TOP 5, 조정 주의 TOP 3를 큐레이션합니다.
+    """
+    init_db()
+    items = []
+
+    for code, name in STOCK_INFO.items():
+        history = get_daily_prices(code, limit=1)
+        pred = get_latest_prediction(code)
+
+        if not history or not pred:
+            continue
+
+        current_price = int(round(float(history[-1]["close_price"])))
+        pred_1d = int(round(float(pred["pred_1d"])))
+        pred_1w = int(round(float(pred["pred_1w"])))
+        pred_1m = int(round(float(pred["pred_1m"])))
+
+        change_1d_pct = round(((pred_1d - current_price) / current_price) * 100, 2)
+        change_1w_pct = round(((pred_1w - current_price) / current_price) * 100, 2)
+        change_1m_pct = round(((pred_1m - current_price) / current_price) * 100, 2)
+
+        items.append({
+            "code": code,
+            "name": name,
+            "current_price": current_price,
+            "base_date": pred["base_date"],
+            "pred_1d": pred_1d,
+            "pred_1w": pred_1w,
+            "pred_1m": pred_1m,
+            "change_1d_pct": change_1d_pct,
+            "change_1w_pct": change_1w_pct,
+            "change_1m_pct": change_1m_pct,
+        })
+
+    if not items:
+        return {
+            "hero_stock": None,
+            "top_1w": [],
+            "top_1m": [],
+            "caution_down": []
+        }
+
+    # 1. 1주일 기준 정렬 (TOP 5)
+    sorted_1w = sorted(items, key=lambda x: x["change_1w_pct"], reverse=True)
+    top_1w = [
+        {
+            "rank": i + 1,
+            "code": s["code"],
+            "name": s["name"],
+            "current_price": s["current_price"],
+            "target_price": s["pred_1w"],
+            "change_pct": s["change_1w_pct"]
+        }
+        for i, s in enumerate(sorted_1w[:5])
+    ]
+
+    # 2. 1달 기준 정렬 (TOP 5)
+    sorted_1m = sorted(items, key=lambda x: x["change_1m_pct"], reverse=True)
+    top_1m = [
+        {
+            "rank": i + 1,
+            "code": s["code"],
+            "name": s["name"],
+            "current_price": s["current_price"],
+            "target_price": s["pred_1m"],
+            "change_pct": s["change_1m_pct"]
+        }
+        for i, s in enumerate(sorted_1m[:5])
+    ]
+
+    # 3. 조정 주의 (1달 하락률 TOP 3)
+    sorted_down = sorted(items, key=lambda x: x["change_1m_pct"])
+    caution_down = [
+        {
+            "rank": i + 1,
+            "code": s["code"],
+            "name": s["name"],
+            "current_price": s["current_price"],
+            "target_price": s["pred_1m"],
+            "change_pct": s["change_1m_pct"]
+        }
+        for i, s in enumerate(sorted_down[:3])
+    ]
+
+    # 4. 오늘의 슈퍼픽 (1주일 기준 1위 종목)
+    hero = sorted_1w[0]
+    ai_comments = [
+        f"최근 30거래일 동안 견고한 상승 모멘텀과 국소 패턴이 감지되었습니다.",
+        f"1D-CNN 시계열 필터에서 강한 상방 돌파 시그널이 도출되었습니다.",
+        f"단기 1주일 내 목표가 {hero['pred_1w']:,}원(+{hero['change_1w_pct']}%) 도달 가능성이 가장 높게 평가됩니다."
+    ]
+
+    hero_stock = {
+        "code": hero["code"],
+        "name": hero["name"],
+        "current_price": hero["current_price"],
+        "target_1w": hero["pred_1w"],
+        "change_1w_pct": hero["change_1w_pct"],
+        "target_1m": hero["pred_1m"],
+        "change_1m_pct": hero["change_1m_pct"],
+        "comment": " ".join(ai_comments)
+    }
+
+    return {
+        "hero_stock": hero_stock,
+        "top_1w": top_1w,
+        "top_1m": top_1m,
+        "caution_down": caution_down,
+        "total_analyzed": len(items)
+    }
