@@ -293,6 +293,28 @@
             background-color: #eff6ff !important;
             border-color: rgba(49, 130, 246, 0.3) !important;
         }
+        html.light .auth-modal-card {
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15) !important;
+        }
+        html.light .auth-input {
+            background-color: #f8fafc !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        html.light .auth-input:focus {
+            background-color: #ffffff !important;
+            border-color: #3182f6 !important;
+        }
+        html.light #fav-grid > div {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+        html.light #fav-grid > div:hover {
+            border-color: rgba(49, 130, 246, 0.4) !important;
+        }
         html.light footer {
             border-color: #e2e8f0 !important;
             color: #94a3b8 !important;
@@ -323,9 +345,35 @@
                 </div>
             </div>
 
-            <!-- Header Right: Theme Toggle & Actions -->
+            <!-- Header Right: Auth, Theme Toggle & Actions -->
             <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
                 
+                <!-- Auth Area: Login Button or User Profile Badge -->
+                <div id="auth-header-section" class="flex items-center space-x-1.5">
+                    <!-- Non-logged in: Login button -->
+                    <button 
+                        id="header-login-btn"
+                        onclick="openAuthModal('login')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-500/20 active:scale-95 whitespace-nowrap">
+                        <i class="fa-solid fa-arrow-right-to-bracket text-[11px]"></i>
+                        <span>로그인</span>
+                    </button>
+                    
+                    <!-- Logged in: User Badge & Logout -->
+                    <div id="header-user-wrap" class="hidden items-center gap-1.5">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold bg-[#141c2e] border border-slate-700/80 text-blue-400 whitespace-nowrap">
+                            <i class="fa-solid fa-user-check text-xs"></i>
+                            <span id="header-username">사용자</span>
+                        </span>
+                        <button 
+                            onclick="logoutUser()"
+                            class="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800/80 text-xs transition-colors"
+                            title="로그아웃">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- ☀️ / 🌙 Theme Toggle Pill Button -->
                 <button 
                     id="theme-toggle-btn"
@@ -348,23 +396,31 @@
         </div>
     </header>
 
-    <!-- Main Navigation Bar: [📊 차트 분석] vs [⚡ AI 랭킹 픽] -->
+    <!-- Main Navigation Bar: [📊 차트 분석] vs [⚡ AI 랭킹 픽] vs [⭐ 내 관심] -->
     <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4">
-        <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1 max-w-md">
+        <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1 max-w-lg">
             <button 
                 id="main-tab-chart"
                 onclick="switchMainTab('chart')"
-                class="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap">
+                class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap">
                 <i class="fa-solid fa-chart-line text-xs"></i>
                 <span>차트 분석</span>
             </button>
             <button 
                 id="main-tab-ranking"
                 onclick="switchMainTab('ranking')"
-                class="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
                 <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
                 <span>AI 랭킹 픽</span>
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            </button>
+            <button 
+                id="main-tab-favorites"
+                onclick="switchMainTab('favorites')"
+                class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                <span>내 관심</span>
+                <span id="fav-tab-count-badge" class="hidden px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">0</span>
             </button>
         </div>
     </div>
@@ -447,11 +503,21 @@
                 </div>
             </div>
 
-            <!-- Selected Stock Header & Current Price -->
+            <!-- Selected Stock Header & Current Price (with Favorite Star ⭐) -->
             <div class="flex flex-row items-center justify-between gap-3 pt-1 pb-1">
                 <div>
                     <div class="flex items-center gap-2 sm:gap-3">
                         <h2 id="current-stock-name" class="text-xl sm:text-3xl font-extrabold text-white tracking-tight whitespace-nowrap">{{ default_stock_name }}</h2>
+                        
+                        <!-- Favorite Star Button ⭐ -->
+                        <button 
+                            id="fav-star-btn"
+                            onclick="toggleCurrentFavorite()"
+                            class="p-1 rounded-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center"
+                            title="관심 종목 등록/해제">
+                            <i id="fav-star-icon" class="fa-regular fa-star text-slate-400 hover:text-amber-300 text-lg sm:text-2xl transition-colors"></i>
+                        </button>
+
                         <span id="current-stock-code" class="text-[11px] sm:text-xs font-mono text-slate-400 px-2 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700/80">{{ default_stock }}</span>
                     </div>
                     <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
@@ -762,9 +828,209 @@
                 </div>
             </div>
 
+        <!-- ========================================== -->
+        <!-- VIEW 3: [⭐ 내 관심 종목 대시보드 뷰] -->
+        <!-- ========================================== -->
+        <div id="favorites-view-container" class="hidden space-y-5">
+
+            <!-- Favorites View Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold text-sm">
+                            <i class="fa-solid fa-star"></i>
+                        </span>
+                        <h3 class="text-xl sm:text-2xl font-bold text-white tracking-tight">내 관심 종목</h3>
+                        <span id="fav-count-header" class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">0개</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">내가 찜한 종목들의 실시간 시세와 AI 목표가를 한눈에 모아봅니다.</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="loadFavoritesData()" class="px-3 py-1.5 rounded-xl bg-[#141c2e] hover:bg-slate-800 border border-slate-700/80 text-xs font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition-all">
+                        <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+                        <span>목록 갱신</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Non-Login Guide Banner (If not logged in) -->
+            <div id="fav-not-logged-in" class="toss-card p-8 rounded-3xl text-center space-y-4 max-w-xl mx-auto my-6 border-dashed border-slate-700">
+                <div class="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-3xl mx-auto">
+                    <i class="fa-regular fa-star"></i>
+                </div>
+                <div class="space-y-1">
+                    <h4 class="text-lg font-bold text-white">로그인이 필요한 서비스입니다</h4>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                        로그인하고 나만의 관심 종목을 별표(⭐)로 찜해보세요.<br>
+                        AI가 매일 분석하는 1주일/1달 목표가와 신뢰도를 실시간 모니터링할 수 있습니다.
+                    </p>
+                </div>
+                <div class="pt-2">
+                    <button 
+                        onclick="openAuthModal('login')"
+                        class="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/25 transition-all active:scale-95">
+                        <i class="fa-solid fa-arrow-right-to-bracket mr-1.5"></i> 로그인 / 회원가입
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty Favorites Guide (If logged in but 0 favorites) -->
+            <div id="fav-empty-state" class="hidden toss-card p-8 rounded-3xl text-center space-y-4 max-w-xl mx-auto my-6 border-slate-800">
+                <div class="w-16 h-16 rounded-3xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-3xl mx-auto">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div class="space-y-1">
+                    <h4 class="text-lg font-bold text-white">아직 관심 종목이 없어요</h4>
+                    <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                        종목 상세 화면에서 종목명 옆의 <strong>별표(⭐)</strong>를 누르면<br>
+                        나만의 관심 종목으로 등록되어 이곳에서 바로 확인할 수 있습니다.
+                    </p>
+                </div>
+                <div class="pt-2 flex items-center justify-center gap-2 flex-wrap">
+                    <span class="text-xs text-slate-500">추천 종목 바로 찜하기:</span>
+                    <button onclick="quickAddFavorite('005930', '삼성전자')" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 transition-all">+ 삼성전자</button>
+                    <button onclick="quickAddFavorite('000660', 'SK하이닉스')" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 transition-all">+ SK하이닉스</button>
+                    <button onclick="quickAddFavorite('035420', 'NAVER')" class="px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-700 hover:border-amber-400 text-slate-300 hover:text-amber-300 transition-all">+ NAVER</button>
+                </div>
+            </div>
+
+            <!-- Favorites Grid Container -->
+            <div id="fav-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+                <!-- Dynamically rendered favorite cards -->
+            </div>
+
         </div>
 
     </main>
+
+    <!-- ========================================== -->
+    <!-- AUTH MODAL: [로그인 / 회원가입 글래스모피즘 모달] -->
+    <!-- ========================================== -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-200">
+        <div class="auth-modal-card toss-card max-w-md w-full p-6 sm:p-7 rounded-3xl relative shadow-2xl space-y-5">
+            
+            <!-- Close Button -->
+            <button 
+                onclick="closeAuthModal()"
+                class="absolute right-4 top-4 w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            <!-- Modal Header / Logo -->
+            <div class="text-center space-y-1 pt-1">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 mx-auto mb-2 text-white text-lg">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white tracking-tight">AI 주가 레이더</h3>
+                <p class="text-xs text-slate-400">관심 종목 찜하기 및 맞춤형 AI 주가 모니터링</p>
+            </div>
+
+            <!-- Auth Tabs: [로그인] vs [회원가입] -->
+            <div class="bg-[#0b0e17] p-1 rounded-2xl border border-slate-800 flex items-center">
+                <button 
+                    id="auth-tab-btn-login"
+                    onclick="switchAuthTab('login')"
+                    class="flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30">
+                    로그인
+                </button>
+                <button 
+                    id="auth-tab-btn-register"
+                    onclick="switchAuthTab('register')"
+                    class="flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all">
+                    회원가입
+                </button>
+            </div>
+
+            <!-- Error / Status Alert Banner -->
+            <div id="auth-alert-box" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+            <!-- 1. Login Form -->
+            <form id="auth-login-form" onsubmit="handleLoginSubmit(event)" class="space-y-3.5">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-medium text-slate-400">이메일 주소</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-envelope absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
+                        <input 
+                            type="email" 
+                            id="login-email-input"
+                            required
+                            placeholder="example@toss.im"
+                            class="auth-input w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#0b0e17] border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[11px] font-medium text-slate-400">비밀번호</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
+                        <input 
+                            type="password" 
+                            id="login-pwd-input"
+                            required
+                            placeholder="비밀번호를 입력하세요"
+                            class="auth-input w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#0b0e17] border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans">
+                    </div>
+                </div>
+
+                <button 
+                    type="submit"
+                    class="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/25 transition-all active:scale-95 mt-2">
+                    로그인
+                </button>
+            </form>
+
+            <!-- 2. Register Form -->
+            <form id="auth-register-form" onsubmit="handleRegisterSubmit(event)" class="hidden space-y-3.5">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-medium text-slate-400">이메일 주소</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-envelope absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
+                        <input 
+                            type="email" 
+                            id="reg-email-input"
+                            required
+                            placeholder="example@toss.im"
+                            class="auth-input w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#0b0e17] border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[11px] font-medium text-slate-400">닉네임 / 사용자명</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-user absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
+                        <input 
+                            type="text" 
+                            id="reg-username-input"
+                            required
+                            placeholder="홍길동"
+                            class="auth-input w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#0b0e17] border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[11px] font-medium text-slate-400">비밀번호 (최소 4자)</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3.5 top-3.5 text-slate-500 text-xs"></i>
+                        <input 
+                            type="password" 
+                            id="reg-pwd-input"
+                            required
+                            minlength="4"
+                            placeholder="비밀번호 설정"
+                            class="auth-input w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-[#0b0e17] border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans">
+                    </div>
+                </div>
+
+                <button 
+                    type="submit"
+                    class="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-lg shadow-blue-500/25 transition-all active:scale-95 mt-2">
+                    회원가입 완료
+                </button>
+            </form>
+
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="border-t border-slate-800/80 mt-10 py-5 px-4 sm:px-6 text-center text-xs text-slate-500">
@@ -779,10 +1045,16 @@
         let currentStockCode = "{{ default_stock }}";
         let currentStockName = "{{ default_stock_name }}";
         let currentPeriodFilter = "1m"; // 기본값: 1달
-        let currentMainTab = "chart"; // 'chart' or 'ranking'
+        let currentMainTab = "chart"; // 'chart', 'ranking', or 'favorites'
         let stockChart = null;
         let cachedData = null;
         let cachedRankings = null;
+        let cachedFavorites = null;
+
+        // 인증 및 관심 종목 상태 변수
+        let currentUser = null;
+        let authToken = localStorage.getItem('auth_token');
+        let currentStockIsFavorite = false;
 
         // 차트 Pan & Drag 상태 변수
         let totalChartLength = 0;
@@ -810,123 +1082,395 @@
         }
 
         // ====================================================
-        // 테마 관리 (다크 / 라이트 모드 토글 & 영구 저장 & 차트 연동)
+        // JWT 인증 & API 공통 통신 헬퍼
         // ====================================================
-        function initTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            setTheme(savedTheme, false);
+        async function authFetch(url, options = {}) {
+            options.headers = options.headers || {};
+            if (authToken) {
+                options.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+            return fetch(url, options);
         }
 
-        function setTheme(theme, updateChart = true) {
-            const isLight = (theme === 'light');
-            const htmlEl = document.documentElement;
-            const themeIcon = document.getElementById('theme-icon');
-            const themeText = document.getElementById('theme-text');
+        async function checkAuthStatus() {
+            if (!authToken) {
+                currentUser = null;
+                updateAuthUI();
+                return;
+            }
+            try {
+                const resp = await authFetch('/api/auth/me');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    currentUser = data.user;
+                } else {
+                    // 토큰 만료 또는 무효
+                    currentUser = null;
+                    authToken = null;
+                    localStorage.removeItem('auth_token');
+                }
+            } catch (err) {
+                console.error('Auth check error:', err);
+                currentUser = null;
+            }
+            updateAuthUI();
+        }
 
-            if (isLight) {
-                htmlEl.classList.remove('dark');
-                htmlEl.classList.add('light');
-                document.body.classList.add('light-theme');
-                localStorage.setItem('theme', 'light');
-                if (themeIcon) {
-                    themeIcon.className = 'fa-solid fa-moon text-indigo-500 text-xs';
+        function updateAuthUI() {
+            const loginBtn = document.getElementById('header-login-btn');
+            const userWrap = document.getElementById('header-user-wrap');
+            const usernameSpan = document.getElementById('header-username');
+
+            if (currentUser) {
+                if (loginBtn) loginBtn.classList.add('hidden');
+                if (userWrap) {
+                    userWrap.classList.remove('hidden');
+                    userWrap.classList.add('flex');
                 }
-                if (themeText) {
-                    themeText.innerText = '다크';
-                    themeText.className = 'whitespace-nowrap text-indigo-600';
-                }
+                if (usernameSpan) usernameSpan.innerText = `${currentUser.username}님`;
             } else {
-                htmlEl.classList.remove('light');
-                htmlEl.classList.add('dark');
-                document.body.classList.remove('light-theme');
-                localStorage.setItem('theme', 'dark');
-                if (themeIcon) {
-                    themeIcon.className = 'fa-solid fa-sun text-amber-400 text-xs';
-                }
-                if (themeText) {
-                    themeText.innerText = '라이트';
-                    themeText.className = 'whitespace-nowrap text-amber-400';
+                if (loginBtn) loginBtn.classList.remove('hidden');
+                if (userWrap) {
+                    userWrap.classList.add('hidden');
+                    userWrap.classList.remove('flex');
                 }
             }
 
-            if (updateChart && stockChart) {
-                applyChartTheme(isLight);
+            if (currentMainTab === 'favorites') {
+                loadFavoritesData();
             }
         }
 
-        function toggleTheme() {
-            const currentTheme = localStorage.getItem('theme') || (document.documentElement.classList.contains('light') ? 'light' : 'dark');
-            const nextTheme = (currentTheme === 'light') ? 'dark' : 'light';
-            setTheme(nextTheme, true);
+        function openAuthModal(defaultTab = 'login') {
+            const modal = document.getElementById('auth-modal');
+            if (!modal) return;
+            switchAuthTab(defaultTab);
+            clearAuthAlert();
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                if (defaultTab === 'login') {
+                    const input = document.getElementById('login-email-input');
+                    if (input) input.focus();
+                } else {
+                    const input = document.getElementById('reg-email-input');
+                    if (input) input.focus();
+                }
+            }, 50);
         }
 
-        function applyChartTheme(isLight) {
-            if (!stockChart) return;
-            
-            const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.04)';
-            const tickColor = isLight ? '#475569' : '#94a3b8';
-            const tooltipBg = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(11, 14, 23, 0.95)';
-            const tooltipTitle = isLight ? '#0f172a' : '#f1f5f9';
-            const tooltipBody = isLight ? '#334155' : '#cbd5e1';
-            const tooltipBorder = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
-
-            if (stockChart.options.scales && stockChart.options.scales.x) {
-                stockChart.options.scales.x.grid.color = gridColor;
-                stockChart.options.scales.x.ticks.color = tickColor;
-            }
-            if (stockChart.options.scales && stockChart.options.scales.y) {
-                stockChart.options.scales.y.grid.color = gridColor;
-                stockChart.options.scales.y.ticks.color = tickColor;
-            }
-            
-            if (stockChart.options.plugins && stockChart.options.plugins.tooltip) {
-                stockChart.options.plugins.tooltip.backgroundColor = tooltipBg;
-                stockChart.options.plugins.tooltip.titleColor = tooltipTitle;
-                stockChart.options.plugins.tooltip.bodyColor = tooltipBody;
-                stockChart.options.plugins.tooltip.borderColor = tooltipBorder;
-            }
-
-            stockChart.update();
+        function closeAuthModal() {
+            const modal = document.getElementById('auth-modal');
+            if (modal) modal.classList.add('hidden');
+            clearAuthAlert();
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            initTheme();
-            initChart();
-            bindChartDragPanEvents();
+        function switchAuthTab(tab) {
+            const loginBtn = document.getElementById('auth-tab-btn-login');
+            const regBtn = document.getElementById('auth-tab-btn-register');
+            const loginForm = document.getElementById('auth-login-form');
+            const regForm = document.getElementById('auth-register-form');
+
+            clearAuthAlert();
+
+            if (tab === 'login') {
+                loginBtn.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30';
+                regBtn.className = 'flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all';
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+            } else {
+                regBtn.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30';
+                loginBtn.className = 'flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-all';
+                regForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            }
+        }
+
+        function showAuthAlert(msg, isSuccess = false) {
+            const box = document.getElementById('auth-alert-box');
+            if (!box) return;
+            box.classList.remove('hidden');
+            box.innerText = msg;
+            if (isSuccess) {
+                box.className = 'p-3 rounded-xl text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+            } else {
+                box.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30';
+            }
+        }
+
+        function clearAuthAlert() {
+            const box = document.getElementById('auth-alert-box');
+            if (box) {
+                box.classList.add('hidden');
+                box.innerText = '';
+            }
+        }
+
+        async function handleLoginSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email-input').value.trim();
+            const password = document.getElementById('login-pwd-input').value;
+            clearAuthAlert();
+
+            try {
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    showAuthAlert(data.detail || '로그인에 실패했습니다.');
+                    return;
+                }
+
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('auth_token', authToken);
+                showAuthAlert('로그인 성공! 환영합니다.', true);
+                updateAuthUI();
+                setTimeout(() => {
+                    closeAuthModal();
+                    loadStockData(currentStockCode, currentStockName);
+                }, 600);
+            } catch (err) {
+                showAuthAlert('서버 연결 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('reg-email-input').value.trim();
+            const username = document.getElementById('reg-username-input').value.trim();
+            const password = document.getElementById('reg-pwd-input').value;
+            clearAuthAlert();
+
+            try {
+                const resp = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, username, password })
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    showAuthAlert(data.detail || '회원가입에 실패했습니다.');
+                    return;
+                }
+
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('auth_token', authToken);
+                showAuthAlert('회원가입 완료! 환영합니다.', true);
+                updateAuthUI();
+                setTimeout(() => {
+                    closeAuthModal();
+                    loadStockData(currentStockCode, currentStockName);
+                }, 600);
+            } catch (err) {
+                showAuthAlert('서버 연결 중 오류가 발생했습니다.');
+            }
+        }
+
+        function logoutUser() {
+            if (!confirm('로그아웃 하시겠습니까?')) return;
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('auth_token');
+            updateAuthUI();
             loadStockData(currentStockCode, currentStockName);
-            loadRankingData();
+        }
 
-            // 외부 클릭 시 드롭다운 닫기
-            document.addEventListener("click", (e) => {
-                const panel = document.getElementById("stock-dropdown-panel");
-                const btn = document.getElementById("dropdown-trigger-btn");
-                if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-                    closeStockDropdown();
-                }
-            });
-        });
+        // ====================================================
+        // 관심 종목(별표 ⭐) 인터랙션 & 데이터 관리
+        // ====================================================
+        function updateFavoriteStarUI(isFav) {
+            currentStockIsFavorite = !!isFav;
+            const btn = document.getElementById('fav-star-btn');
+            const icon = document.getElementById('fav-star-icon');
+            if (!btn || !icon) return;
 
-        // 탭 전환 (차트 분석 vs AI 랭킹 픽)
-        function switchMainTab(tab) {
-            currentMainTab = tab;
-            const chartBtn = document.getElementById("main-tab-chart");
-            const rankBtn = document.getElementById("main-tab-ranking");
-            const chartView = document.getElementById("chart-view-container");
-            const rankView = document.getElementById("ranking-view-container");
-
-            if (tab === "chart") {
-                chartBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap";
-                rankBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap";
-                chartView.classList.remove("hidden");
-                rankView.classList.add("hidden");
-                if (stockChart) stockChart.resize();
+            if (currentStockIsFavorite) {
+                icon.className = 'fa-solid fa-star text-amber-400 drop-shadow text-lg sm:text-2xl transition-colors';
+                btn.title = '관심 종목 해제';
             } else {
-                rankBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap";
-                chartBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap";
-                chartView.classList.add("hidden");
-                rankView.classList.remove("hidden");
-                if (!cachedRankings) loadRankingData();
+                icon.className = 'fa-regular fa-star text-slate-400 hover:text-amber-300 text-lg sm:text-2xl transition-colors';
+                btn.title = '관심 종목 찜하기';
             }
+        }
+
+        async function toggleCurrentFavorite() {
+            if (!currentUser) {
+                openAuthModal('login');
+                return;
+            }
+
+            const btn = document.getElementById('fav-star-btn');
+            if (btn) {
+                btn.classList.add('scale-125');
+                setTimeout(() => btn.classList.remove('scale-125'), 200);
+            }
+
+            try {
+                const resp = await authFetch(`/api/favorites/${currentStockCode}/toggle`, {
+                    method: 'POST'
+                });
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        openAuthModal('login');
+                        return;
+                    }
+                    throw new Error('Toggle favorite failed');
+                }
+                const data = await resp.json();
+                updateFavoriteStarUI(data.is_favorite);
+                if (currentMainTab === 'favorites') {
+                    loadFavoritesData();
+                }
+            } catch (err) {
+                console.error('별표 찜 토글 실패:', err);
+            }
+        }
+
+        async function quickAddFavorite(code, name) {
+            if (!currentUser) {
+                openAuthModal('login');
+                return;
+            }
+            try {
+                await authFetch(`/api/favorites/${code}/toggle`, { method: 'POST' });
+                loadFavoritesData();
+                if (code === currentStockCode) {
+                    loadStockData(code, name);
+                }
+            } catch (err) {
+                console.error('빠른 즐겨찾기 실패:', err);
+            }
+        }
+
+        async function loadFavoritesData() {
+            const notLoggedIn = document.getElementById('fav-not-logged-in');
+            const emptyState = document.getElementById('fav-empty-state');
+            const grid = document.getElementById('fav-grid');
+            const countHeader = document.getElementById('fav-count-header');
+            const tabBadge = document.getElementById('fav-tab-count-badge');
+
+            if (!currentUser) {
+                if (notLoggedIn) notLoggedIn.classList.remove('hidden');
+                if (emptyState) emptyState.classList.add('hidden');
+                if (grid) grid.innerHTML = '';
+                if (countHeader) countHeader.innerText = '0개';
+                if (tabBadge) tabBadge.classList.add('hidden');
+                return;
+            }
+
+            if (notLoggedIn) notLoggedIn.classList.add('hidden');
+
+            try {
+                const resp = await authFetch('/api/favorites');
+                if (!resp.ok) {
+                    if (resp.status === 401) {
+                        currentUser = null;
+                        updateAuthUI();
+                        return;
+                    }
+                    throw new Error('Favorites load error');
+                }
+                const data = await resp.json();
+                cachedFavorites = data.favorites;
+                renderFavoritesData(data.favorites);
+            } catch (err) {
+                console.error('관심 종목 로드 실패:', err);
+            }
+        }
+
+        function renderFavoritesData(favList) {
+            const emptyState = document.getElementById('fav-empty-state');
+            const grid = document.getElementById('fav-grid');
+            const countHeader = document.getElementById('fav-count-header');
+            const tabBadge = document.getElementById('fav-tab-count-badge');
+
+            const count = favList ? favList.length : 0;
+            if (countHeader) countHeader.innerText = `${count}개`;
+            if (tabBadge) {
+                if (count > 0) {
+                    tabBadge.innerText = count;
+                    tabBadge.classList.remove('hidden');
+                } else {
+                    tabBadge.classList.add('hidden');
+                }
+            }
+
+            if (!favList || favList.length === 0) {
+                if (emptyState) emptyState.classList.remove('hidden');
+                if (grid) grid.innerHTML = '';
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            favList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "toss-card p-4 sm:p-5 rounded-3xl space-y-3 relative overflow-hidden transition-all hover:border-blue-500/50 shadow-lg";
+
+                const chg1w = item.change_1w_pct || 0;
+                const chg1m = item.change_1m_pct || 0;
+                const is1wUp = chg1w >= 0;
+                const is1mUp = chg1m >= 0;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <h4 class="text-base sm:text-lg font-bold text-white truncate cursor-pointer hover:text-blue-400 transition-colors" onclick="selectAndNavigateStock('${item.code}', '${item.name}')">${item.name}</h4>
+                                <span class="text-[10px] sm:text-[11px] font-mono text-slate-400 px-1.5 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60">${item.code}</span>
+                            </div>
+                            <div class="text-xs text-slate-400 mt-1 font-mono">
+                                <span>현재가:</span> <span class="text-sm font-bold text-white font-mono">${formatKRW(item.current_price)}</span>
+                            </div>
+                        </div>
+
+                        <!-- Favorite Star Action in Card -->
+                        <button 
+                            onclick="event.stopPropagation(); quickAddFavorite('${item.code}', '${item.name}')" 
+                            class="p-1 text-amber-400 hover:text-slate-400 text-lg transition-transform hover:scale-110 active:scale-95 flex-shrink-0"
+                            title="관심 종목 찜 해제">
+                            <i class="fa-solid fa-star"></i>
+                        </button>
+                    </div>
+
+                    <!-- AI Prediction Summary -->
+                    <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60 text-xs">
+                        <div class="p-2 rounded-xl bg-[#0b0e17]/60 border border-slate-800/80">
+                            <div class="text-[10px] text-slate-400">1주일 AI 목표</div>
+                            <div class="font-bold text-white font-mono text-xs sm:text-sm mt-0.5">${formatKRW(item.target_1w)}</div>
+                            <div class="text-[10px] font-bold font-mono mt-0.5 ${is1wUp ? 'text-[#f04452]' : 'text-[#3182f6]'}">
+                                ${is1wUp ? '+' : ''}${chg1w.toFixed(1)}%
+                            </div>
+                        </div>
+                        <div class="p-2 rounded-xl bg-[#0b0e17]/60 border border-slate-800/80">
+                            <div class="text-[10px] text-slate-400">1달 AI 목표</div>
+                            <div class="font-bold text-white font-mono text-xs sm:text-sm mt-0.5">${formatKRW(item.target_1m)}</div>
+                            <div class="text-[10px] font-bold font-mono mt-0.5 ${is1mUp ? 'text-[#f04452]' : 'text-[#3182f6]'}">
+                                ${is1mUp ? '+' : ''}${chg1m.toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer: Backtest & Chart Navigate Button -->
+                    <div class="flex items-center justify-between pt-1 text-xs">
+                        <span class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                            🎯 적중률 ${item.hit_ratio}%
+                        </span>
+                        <button 
+                            onclick="selectAndNavigateStock('${item.code}', '${item.name}')"
+                            class="text-blue-400 hover:text-blue-300 font-semibold text-xs flex items-center gap-1 transition-colors">
+                            <span>차트 보기</span> <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
         }
 
         // 랭킹에서 특정 종목 클릭 시 차트 뷰로 전환하고 해당 종목 로드
@@ -1120,7 +1664,7 @@
         async function loadStockData(code, name) {
             try {
                 showLoadingState(true);
-                const resp = await fetch(`/api/stock/${code}`);
+                const resp = await authFetch(`/api/stock/${code}`);
                 if (!resp.ok) {
                     throw new Error(`API Error: ${resp.status}`);
                 }
@@ -1141,6 +1685,9 @@
             document.getElementById("current-stock-code").innerText = data.stock_code;
             document.getElementById("current-base-date").innerText = data.base_date || "-";
             document.getElementById("current-price-val").innerText = formatKRW(data.current_price);
+
+            // 관심 종목(별표 ⭐) 상태 업데이트
+            updateFavoriteStarUI(data.is_favorite);
 
             // AI 백테스팅 검증 적중률 배너 렌더링
             renderBacktestBanner(data.backtest);

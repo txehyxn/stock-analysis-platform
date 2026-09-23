@@ -1,5 +1,8 @@
 import os
 import sqlite3
+import hashlib
+import secrets
+import hmac
 from typing import List, Dict, Any, Optional
 import numpy as np
 import pandas as pd
@@ -502,3 +505,161 @@ def get_all_latest_rankings() -> Dict[str, Any]:
         "total_analyzed": len(items),
         "verified_count": len(verified_items)
     }
+
+# ====================================================
+# 사용자 인증 & 즐겨찾기(관심 종목) 관리 모듈
+# ====================================================
+
+def hash_password(password: str, salt: Optional[str] = None) -> tuple[str, str]:
+    """
+    PBKDF2-HMAC-SHA256 알고리즘을 사용하여 비밀번호를 안전하게 솔팅 및 해싱합니다.
+    """
+    if salt is None:
+        salt = secrets.token_hex(16)
+    pwd_hash = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt.encode('utf-8'),
+        100000
+    ).hex()
+    return pwd_hash, salt
+
+def create_user(email: str, username: str, password: str) -> Optional[Dict[str, Any]]:
+    """
+    신규 사용자를 생성합니다. (이메일 중복 시 None 반환)
+    """
+    init_db()
+    email_clean = email.strip().lower()
+    username_clean = username.strip()
+
+    if not email_clean or not username_clean or not password:
+        return None
+
+    pwd_hash, salt = hash_password(password)
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        # 이메일 중복 검사
+        cursor.execute("SELECT id FROM users WHERE email = ?", (email_clean,))
+        if cursor.fetchone():
+            return None
+
+        cursor.execute(
+            "INSERT INTO users (email, username, password_hash, salt) VALUES (?, ?, ?, ?)",
+            (email_clean, username_clean, pwd_hash, salt)
+        )
+        user_id = cursor.lastrowid
+        conn.commit()
+        return {
+            "id": user_id,
+            "email": email_clean,
+            "username": username_clean
+        }
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
+def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
+    """
+    이메일과 비밀번호를 검증하여 일치하면 사용자 정보를 반환합니다.
+    """
+    init_db()
+    email_clean = email.strip().lower()
+    if not email_clean or not password:
+        return None
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, email, username, password_hash, salt FROM users WHERE email = ?", (email_clean,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        user_id = row["id"]
+        stored_hash = row["password_hash"]
+        salt = row["salt"]
+
+        test_hash, _ = hash_password(password, salt=salt)
+        if hmac.compare_digest(test_hash, stored_hash):
+            return {
+                "id": user_id,
+                "email": row["email"],
+                "username": row["username"]
+            }
+        return None
+    finally:
+        conn.close()
+
+def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
+    """
+    사용자 ID로 사용자 기본 정보를 조회합니다.
+    """
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, email, username, created_at FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "id": row["id"],
+            "email": row["email"],
+            "username": row["username"],
+            "created_at": str(row["created_at"])
+        }
+    finally:
+        conn.close()
+
+def toggle_user_favorite(user_id: int, stock_code: str) -> bool:
+    """
+    관심 종목을 토글합니다. 이미 등록되어 있으면 제거(False), 없으면 추가(True)를 반환합니다.
+    """
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM user_favorites WHERE user_id = ? AND stock_code = ?", (user_id, stock_code))
+        row = cursor.fetchone()
+        if row:
+            cursor.execute("DELETE FROM user_favorites WHERE user_id = ? AND stock_code = ?", (user_id, stock_code))
+            conn.commit()
+            return False
+        else:
+            cursor.execute("INSERT INTO user_favorites (user_id, stock_code) VALUES (?, ?)", (user_id, stock_code))
+            conn.commit()
+            return True
+    finally:
+        conn.close()
+
+def get_user_favorites(user_id: int) -> List[str]:
+    """
+    사용자가 등록한 관심 종목 코드 목록을 반환합니다.
+    """
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT stock_code FROM user_favorites WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+        rows = cursor.fetchall()
+        return [r["stock_code"] for r in rows]
+    finally:
+        conn.close()
+
+def is_user_favorite(user_id: int, stock_code: str) -> bool:
+    """
+    특정 종목이 사용자의 관심 종목으로 등록되어 있는지 여부를 확인합니다.
+    """
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1 FROM user_favorites WHERE user_id = ? AND stock_code = ?", (user_id, stock_code))
+        return cursor.fetchone() is not None
+    finally:
+        conn.close()

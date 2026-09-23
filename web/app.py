@@ -7,7 +7,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 import uvicorn
+import jwt
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -19,6 +21,12 @@ from database.db_manager import (
     get_stock_list, 
     get_all_latest_rankings,
     calculate_stock_backtest,
+    create_user,
+    authenticate_user,
+    get_user_by_id,
+    toggle_user_favorite,
+    get_user_favorites,
+    is_user_favorite,
     STOCK_INFO,
     init_db
 )
@@ -115,11 +123,173 @@ def add_business_days(start_date_str: str, n_days: int) -> str:
             added += 1
     return current.strftime("%Y-%m-%d")
 
+# ====================================================
+# JWT 인증 설정 및 헬퍼 함수
+# ====================================================
+JWT_SECRET = os.getenv("JWT_SECRET", "toss-stock-ai-secret-key-2026-very-secure")
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRE_DAYS = 7
+
+class RegisterRequest(BaseModel):
+    email: str
+    username: str
+    password: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+def create_access_token(user_id: int, email: str, username: str) -> str:
+    """사용자 정보로 7일간 유효한 JWT 토큰을 발급합니다."""
+    payload = {
+        "user_id": user_id,
+        "email": email,
+        "username": username,
+        "exp": datetime.utcnow() + timedelta(days=JWT_EXPIRE_DAYS),
+        "iat": datetime.utcnow()
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+def get_current_user_optional(request: Request) -> Optional[dict]:
+    """Authorization 헤더(Bearer 토큰)를 파싱하여 유효한 사용자 정보를 반환합니다."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user = get_user_by_id(payload["user_id"])
+        return user
+    except Exception:
+        return None
+
+# ====================================================
+# 회원가입 및 로그인 인증 엔드포인트
+# ====================================================
+@app.post("/api/auth/register")
+async def api_register(req: RegisterRequest):
+    """신규 회원가입을 처리하고 JWT 토큰을 발급합니다."""
+    if not req.email or not req.username or not req.password:
+        raise HTTPException(status_code=400, detail="모든 항목을 입력해주세요.")
+    if len(req.password) < 4:
+        raise HTTPException(status_code=400, detail="비밀번호는 최소 4자 이상이어야 합니다.")
+    
+    user = create_user(req.email, req.username, req.password)
+    if not user:
+        raise HTTPException(status_code=400, detail="이미 등록된 이메일이거나 회원가입에 실패했습니다.")
+
+    token = create_access_token(user["id"], user["email"], user["username"])
+    return {
+        "status": "success",
+        "message": "회원가입이 완료되었습니다.",
+        "token": token,
+        "user": user
+    }
+
+@app.post("/api/auth/login")
+async def api_login(req: LoginRequest):
+    """로그인을 검증하고 JWT 토큰을 발급합니다."""
+    user = authenticate_user(req.email, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 일치하지 않습니다.")
+
+    token = create_access_token(user["id"], user["email"], user["username"])
+    return {
+        "status": "success",
+        "message": "로그인에 성공했습니다.",
+        "token": token,
+        "user": user
+    }
+
+@app.get("/api/auth/me")
+async def api_auth_me(request: Request):
+    """현재 로그인된 사용자 정보를 반환합니다."""
+    user = get_current_user_optional(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요하거나 세션이 만료되었습니다.")
+    return {"user": user}
+
+# ====================================================
+# 관심 종목(즐겨찾기) 엔드포인트
+# ====================================================
+@app.get("/api/favorites")
+async def api_get_favorites(request: Request):
+    """
+    로그인한 사용자가 찜한 관심 종목 종합 리스트를 반환합니다.
+    (실시간 종가, 1W/1M AI 목표가, 백테스팅 적중률 포함)
+    """
+    user = get_current_user_optional(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요한 기능입니다.")
+
+    fav_codes = get_user_favorites(user["id"])
+    favorites_list = []
+    
+    for code in fav_codes:
+        name = STOCK_INFO.get(code, code)
+        raw_hist = get_daily_prices(code)
+        pred = get_latest_prediction(code)
+        
+        if raw_hist:
+            cur_price = int(round(float(raw_hist[-1]["close_price"])))
+            base_date = raw_hist[-1]["date"]
+            bt = calculate_stock_backtest(code, raw_hist)
+        else:
+            cur_price = 0
+            base_date = "-"
+            bt = {"hit_ratio": 0, "grade": "분석중", "status_color": "slate"}
+        
+        pred_1w = int(round(float(pred["pred_1w"]))) if pred else cur_price
+        pred_1m = int(round(float(pred["pred_1m"]))) if pred else cur_price
+        chg_1w = round(((pred_1w - cur_price) / cur_price) * 100, 1) if cur_price > 0 else 0.0
+        chg_1m = round(((pred_1m - cur_price) / cur_price) * 100, 1) if cur_price > 0 else 0.0
+
+        favorites_list.append({
+            "code": code,
+            "name": name,
+            "current_price": cur_price,
+            "base_date": base_date,
+            "target_1w": pred_1w,
+            "change_1w_pct": chg_1w,
+            "target_1m": pred_1m,
+            "change_1m_pct": chg_1m,
+            "hit_ratio": bt.get("hit_ratio", 0),
+            "grade": bt.get("grade", "보통"),
+            "status_color": bt.get("status_color", "blue")
+        })
+
+    return {
+        "favorites": favorites_list,
+        "count": len(favorites_list)
+    }
+
+@app.post("/api/favorites/{stock_code}/toggle")
+async def api_toggle_favorite(stock_code: str, request: Request):
+    """특정 종목을 사용자의 관심 종목에 등록하거나 해제(토글)합니다."""
+    user = get_current_user_optional(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="로그인이 필요한 기능입니다.")
+    
+    stock_code = stock_code.zfill(6)
+    if stock_code not in STOCK_INFO:
+        raise HTTPException(status_code=404, detail="존재하지 않는 종목 코드입니다.")
+
+    is_fav = toggle_user_favorite(user["id"], stock_code)
+    return {
+        "status": "success",
+        "stock_code": stock_code,
+        "is_favorite": is_fav,
+        "message": "관심 종목에 추가되었습니다." if is_fav else "관심 종목에서 제거되었습니다."
+    }
+
+# ====================================================
+# 주식 상세 및 랭킹 조회 엔드포인트
+# ====================================================
 @app.get("/api/stock/{stock_code}")
-async def api_stock_detail(stock_code: str):
+async def api_stock_detail(stock_code: str, request: Request):
     """
     특정 종목의 과거 종가 이력 및 1D-CNN 예측 데이터(1일/1주/1달)를 반환합니다.
-    (모든 가격 데이터는 정수 반올림 처리)
+    (모든 가격 데이터는 정수 반올림 처리, 로그인 유저의 찜 여부 포함)
     """
     stock_code = stock_code.zfill(6)
     if stock_code not in STOCK_INFO:
@@ -128,12 +298,16 @@ async def api_stock_detail(stock_code: str):
     raw_history = get_daily_prices(stock_code)
     prediction = get_latest_prediction(stock_code)
 
+    user = get_current_user_optional(request)
+    is_fav = is_user_favorite(user["id"], stock_code) if user else False
+
     if not raw_history:
         return {
             "stock_code": stock_code,
             "stock_name": STOCK_INFO.get(stock_code, stock_code),
             "history": [],
             "prediction": None,
+            "is_favorite": is_fav,
             "message": "데이터가 아직 수집되지 않았습니다. 크롤러를 실행해주세요."
         }
 
@@ -187,7 +361,8 @@ async def api_stock_detail(stock_code: str):
         "base_date": base_date,
         "history": history,
         "prediction": prediction_data,
-        "backtest": backtest
+        "backtest": backtest,
+        "is_favorite": is_fav
     }
 
 @app.get("/api/ranking")
