@@ -75,6 +75,14 @@
             background: linear-gradient(135deg, rgba(49, 130, 246, 0.22) 0%, rgba(139, 92, 246, 0.18) 50%, rgba(20, 28, 46, 0.95) 100%);
             border: 1px solid rgba(49, 130, 246, 0.4);
         }
+        /* No scrollbar utility */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 5px;
@@ -93,26 +101,27 @@
 
     <!-- Top Sticky Header -->
     <header class="sticky top-0 z-40 bg-[#0b0e17]/90 backdrop-blur-xl border-b border-slate-800/80 px-4 py-3 sm:px-6">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                    <i class="fa-solid fa-wand-magic-sparkles text-white text-base"></i>
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+                <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-blue-500/20 flex-shrink-0">
+                    <i class="fa-solid fa-wand-magic-sparkles text-white text-sm sm:text-base"></i>
                 </div>
-                <div>
-                    <h1 class="text-lg font-bold font-display tracking-tight text-white flex items-center gap-2">
-                        AI 주가 레이더 <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-bold border border-blue-500/30">Top 50</span>
+                <div class="min-w-0">
+                    <h1 class="text-base sm:text-lg font-bold font-display tracking-tight text-white flex items-center gap-1.5 whitespace-nowrap">
+                        <span>AI 주가 레이더</span> 
+                        <span class="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 font-bold border border-blue-500/30 flex-shrink-0">Top 50</span>
                     </h1>
-                    <p class="text-xs text-slate-400 hidden sm:block">AI가 딥러닝으로 예측한 앞으로의 주가 흐름</p>
+                    <p class="text-[11px] sm:text-xs text-slate-400 hidden sm:block truncate">AI가 딥러닝으로 예측한 앞으로의 주가 흐름</p>
                 </div>
             </div>
 
             <!-- Header Right: Auto Refresh Badge & Actions -->
-            <div class="flex items-center space-x-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" title="평일 16:00 장마감 후 자동 갱신">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <div class="flex items-center space-x-1.5 sm:space-x-2 flex-shrink-0">
+                <span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 whitespace-nowrap" title="평일 16:00 장마감 후 자동 갱신">
+                    <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>16:00 자동 갱신</span>
                 </span>
-                <button onclick="triggerManualPipeline()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors" title="데이터 즉시 갱신">
+                <button onclick="triggerManualPipeline()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-colors flex-shrink-0" title="데이터 즉시 갱신">
                     <i id="refresh-icon" class="fa-solid fa-rotate text-sm"></i>
                 </button>
             </div>
@@ -125,14 +134,14 @@
             <button 
                 id="main-tab-chart"
                 onclick="switchMainTab('chart')"
-                class="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30">
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap">
                 <i class="fa-solid fa-chart-line text-xs"></i>
                 <span>차트 분석</span>
             </button>
             <button 
                 id="main-tab-ranking"
                 onclick="switchMainTab('ranking')"
-                class="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200">
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
                 <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
                 <span>AI 랭킹 픽</span>
                 <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
@@ -146,31 +155,31 @@
         <!-- ========================================== -->
         <!-- VIEW 1: [📊 차트 분석 대시보드 뷰] -->
         <!-- ========================================== -->
-        <div id="chart-view-container" class="space-y-5">
+        <div id="chart-view-container" class="space-y-4 sm:space-y-5">
 
             <!-- Stock Selector & Major Quick Tags -->
-            <div class="space-y-3">
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div class="space-y-2.5">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
                     
                     <!-- Searchable Select Trigger -->
                     <div class="relative flex-1 max-w-xl">
                         <button 
                             id="dropdown-trigger-btn"
                             onclick="toggleStockDropdown()"
-                            class="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-[#141c2e] border border-slate-700/70 text-left shadow-xl hover:border-blue-500/50 transition-all">
-                            <div class="flex items-center gap-3">
-                                <span class="w-9 h-9 rounded-xl bg-blue-600/15 text-blue-400 border border-blue-500/25 flex items-center justify-center font-bold text-sm">
+                            class="w-full flex items-center justify-between px-3.5 sm:px-4 py-3 sm:py-3.5 rounded-2xl bg-[#141c2e] border border-slate-700/70 text-left shadow-xl hover:border-blue-500/50 transition-all">
+                            <div class="flex items-center gap-2.5 sm:gap-3">
+                                <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600/15 text-blue-400 border border-blue-500/25 flex items-center justify-center font-bold text-xs sm:text-sm flex-shrink-0">
                                     <i class="fa-solid fa-magnifying-glass"></i>
                                 </span>
                                 <div>
-                                    <div class="text-[11px] text-slate-400 font-medium">분석 종목 선택 (50개사)</div>
-                                    <div class="text-base font-bold text-white flex items-center gap-2 mt-0.5">
+                                    <div class="text-[10px] sm:text-[11px] text-slate-400 font-medium">분석 종목 선택 (50개사)</div>
+                                    <div class="text-sm sm:text-base font-bold text-white flex items-center gap-1.5 mt-0.5">
                                         <span id="selected-stock-display-name">{{ default_stock_name }}</span>
-                                        <span id="selected-stock-display-code" class="text-xs font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">({{ default_stock }})</span>
+                                        <span id="selected-stock-display-code" class="text-[11px] sm:text-xs font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-md border border-blue-500/20">({{ default_stock }})</span>
                                     </div>
                                 </div>
                             </div>
-                            <i id="dropdown-chevron" class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform duration-200"></i>
+                            <i id="dropdown-chevron" class="fa-solid fa-chevron-down text-slate-400 text-xs sm:text-sm transition-transform duration-200"></i>
                         </button>
 
                         <!-- Dropdown Modal / List -->
@@ -206,139 +215,137 @@
                         </div>
                     </div>
 
-                    <!-- Major Quick Filter Badges -->
-                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar sm:justify-end">
-                        <span class="text-xs text-slate-500 whitespace-nowrap mr-1">주요:</span>
-                        <button onclick="onSelectStock('005930', '삼성전자')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all">삼성전자</button>
-                        <button onclick="onSelectStock('000660', 'SK하이닉스')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all">SK하이닉스</button>
-                        <button onclick="onSelectStock('373220', 'LG에너지솔루션')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all">LG에너지솔루션</button>
-                        <button onclick="onSelectStock('005380', '현대차')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all">현대차</button>
-                        <button onclick="onSelectStock('035420', 'NAVER')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all">NAVER</button>
+                    <!-- Major Quick Filter Badges (Horizontal Swipe Scroll) -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar flex-nowrap sm:justify-end">
+                        <span class="text-[11px] sm:text-xs text-slate-500 whitespace-nowrap mr-0.5 flex-shrink-0">주요:</span>
+                        <button onclick="onSelectStock('005930', '삼성전자')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all flex-shrink-0">삼성전자</button>
+                        <button onclick="onSelectStock('000660', 'SK하이닉스')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all flex-shrink-0">SK하이닉스</button>
+                        <button onclick="onSelectStock('373220', 'LG에너지솔루션')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all flex-shrink-0">LG에너지솔루션</button>
+                        <button onclick="onSelectStock('005380', '현대차')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all flex-shrink-0">현대차</button>
+                        <button onclick="onSelectStock('035420', 'NAVER')" class="quick-btn px-3 py-1.5 rounded-full text-xs font-semibold bg-[#141c2e] border border-slate-800 text-slate-300 hover:text-white hover:border-blue-500 whitespace-nowrap transition-all flex-shrink-0">NAVER</button>
                     </div>
                 </div>
             </div>
 
             <!-- Selected Stock Header & Current Price -->
-            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pt-1 pb-1">
+            <div class="flex flex-row items-center justify-between gap-3 pt-1 pb-1">
                 <div>
-                    <div class="flex items-center gap-3">
-                        <h2 id="current-stock-name" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{{ default_stock_name }}</h2>
-                        <span id="current-stock-code" class="text-xs font-mono text-slate-400 px-2.5 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700/80">{{ default_stock }}</span>
+                    <div class="flex items-center gap-2 sm:gap-3">
+                        <h2 id="current-stock-name" class="text-xl sm:text-3xl font-extrabold text-white tracking-tight whitespace-nowrap">{{ default_stock_name }}</h2>
+                        <span id="current-stock-code" class="text-[11px] sm:text-xs font-mono text-slate-400 px-2 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700/80">{{ default_stock }}</span>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                    <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
                         <i class="fa-regular fa-clock text-slate-500"></i>
-                        기준일: <span id="current-base-date" class="font-mono text-slate-300 font-semibold">-</span>
-                        <span class="text-slate-600">|</span>
-                        <span class="text-slate-400">과거 30영업일 패턴 분석</span>
+                        <span>기준일:</span> <span id="current-base-date" class="font-mono text-slate-300 font-semibold">-</span>
                     </p>
                 </div>
-                <div class="text-left sm:text-right flex sm:flex-col justify-between sm:justify-end items-baseline sm:items-end">
-                    <span class="text-xs text-slate-400 font-medium">현재 종가</span>
-                    <div class="flex items-baseline gap-2 mt-0.5">
-                        <span id="current-price-val" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">-원</span>
+                <div class="text-right">
+                    <span class="text-[11px] sm:text-xs text-slate-400 font-medium">현재 종가</span>
+                    <div class="flex items-baseline justify-end gap-1.5 mt-0.5">
+                        <span id="current-price-val" class="text-xl sm:text-3xl font-extrabold text-white tracking-tight font-mono">-원</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Period Selection Pill Filter Tabs (Toss Style) -->
-            <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-1 max-w-2xl">
-                <button 
-                    onclick="setPeriodFilter('all')" 
-                    id="filter-btn-all" 
-                    class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30">
-                    전체
-                </button>
-                <button 
-                    onclick="setPeriodFilter('1d')" 
-                    id="filter-btn-1d" 
-                    class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all">
-                    내일 (1일)
-                </button>
+            <!-- 증권사 스타일 차트 기간 탭 버튼 그룹 (1주일 / 1달 / 3달 / 1년/전체) -->
+            <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-1 max-w-xl">
                 <button 
                     onclick="setPeriodFilter('1w')" 
                     id="filter-btn-1w" 
                     class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all">
-                    1주일 뒤 (5일)
+                    1주일
                 </button>
                 <button 
                     onclick="setPeriodFilter('1m')" 
                     id="filter-btn-1m" 
+                    class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30">
+                    1달
+                </button>
+                <button 
+                    onclick="setPeriodFilter('3m')" 
+                    id="filter-btn-3m" 
                     class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all">
-                    1달 뒤 (20일)
+                    3달
+                </button>
+                <button 
+                    onclick="setPeriodFilter('all')" 
+                    id="filter-btn-all" 
+                    class="period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all">
+                    1년/전체
                 </button>
             </div>
 
-            <!-- 4 Summary Prediction Cards (Toss Style, No Decimals) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <!-- 4 Summary Prediction Cards (모바일 2열 2행 grid-cols-2 lg:grid-cols-4 최적화) -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
                 
                 <!-- Card 1: 기준 종가 -->
-                <div id="card-wrap-base" class="toss-card p-4 rounded-3xl relative overflow-hidden">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider">기준일 종가</span>
-                        <div class="w-7 h-7 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                            <i class="fa-solid fa-coins text-xs"></i>
+                <div id="card-wrap-base" class="toss-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl relative overflow-hidden">
+                    <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                        <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">기준 종가</span>
+                        <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <i class="fa-solid fa-coins text-[10px] sm:text-xs"></i>
                         </div>
                     </div>
-                    <div class="text-2xl font-extrabold text-blue-400" id="card-base-price">-원</div>
-                    <div class="text-xs text-slate-400 mt-1 font-mono flex items-center gap-1">
+                    <div class="text-lg sm:text-2xl font-extrabold text-blue-400 font-mono" id="card-base-price">-원</div>
+                    <div class="text-[10px] sm:text-xs text-slate-400 mt-0.5 sm:mt-1 font-mono flex items-center gap-1">
                         <span>기준:</span> <span id="card-base-date" class="text-slate-300">-</span>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-blue-500/40"></div>
                 </div>
 
                 <!-- Card 2: 1일 뒤 예측 -->
-                <div id="card-wrap-1d" onclick="setPeriodFilter('1d')" class="toss-card p-4 rounded-3xl relative overflow-hidden cursor-pointer">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-semibold uppercase tracking-wider">내일 예측</span>
-                            <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-blue-500/15 text-blue-400 font-bold">1D</span>
+                <div id="card-wrap-1d" onclick="setPeriodFilter('1d_card')" class="toss-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl relative overflow-hidden cursor-pointer">
+                    <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">내일 예측</span>
+                            <span class="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full bg-blue-500/15 text-blue-400 font-bold">1D</span>
                         </div>
-                        <div class="w-7 h-7 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-                            <i class="fa-solid fa-bolt text-xs"></i>
+                        <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+                            <i class="fa-solid fa-bolt text-[10px] sm:text-xs"></i>
                         </div>
                     </div>
-                    <div class="text-2xl font-extrabold text-white" id="card-pred-1d">-원</div>
-                    <div class="flex items-center justify-between text-xs mt-1">
+                    <div class="text-lg sm:text-2xl font-extrabold text-white font-mono" id="card-pred-1d">-원</div>
+                    <div class="flex items-center justify-between text-[10px] sm:text-xs mt-0.5 sm:mt-1">
                         <span class="text-slate-400 font-mono" id="card-date-1d">-</span>
-                        <span id="card-change-1d" class="font-bold px-2 py-0.5 rounded-full text-xs">-</span>
+                        <span id="card-change-1d" class="font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs">-</span>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-blue-500/40"></div>
                 </div>
 
                 <!-- Card 3: 1주 뒤 예측 -->
-                <div id="card-wrap-1w" onclick="setPeriodFilter('1w')" class="toss-card p-4 rounded-3xl relative overflow-hidden cursor-pointer">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-semibold uppercase tracking-wider">1주일 뒤 예측</span>
-                            <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-amber-500/15 text-amber-400 font-bold">1W</span>
+                <div id="card-wrap-1w" onclick="setPeriodFilter('1w')" class="toss-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl relative overflow-hidden cursor-pointer">
+                    <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">1주 뒤 예측</span>
+                            <span class="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full bg-amber-500/15 text-amber-400 font-bold">1W</span>
                         </div>
-                        <div class="w-7 h-7 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-                            <i class="fa-solid fa-calendar-days text-xs"></i>
+                        <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                            <i class="fa-solid fa-calendar-days text-[10px] sm:text-xs"></i>
                         </div>
                     </div>
-                    <div class="text-2xl font-extrabold text-white" id="card-pred-1w">-원</div>
-                    <div class="flex items-center justify-between text-xs mt-1">
+                    <div class="text-lg sm:text-2xl font-extrabold text-white font-mono" id="card-pred-1w">-원</div>
+                    <div class="flex items-center justify-between text-[10px] sm:text-xs mt-0.5 sm:mt-1">
                         <span class="text-slate-400 font-mono" id="card-date-1w">-</span>
-                        <span id="card-change-1w" class="font-bold px-2 py-0.5 rounded-full text-xs">-</span>
+                        <span id="card-change-1w" class="font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs">-</span>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500/40"></div>
                 </div>
 
                 <!-- Card 4: 1달 뒤 예측 -->
-                <div id="card-wrap-1m" onclick="setPeriodFilter('1m')" class="toss-card p-4 rounded-3xl relative overflow-hidden cursor-pointer">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-semibold uppercase tracking-wider">1달 뒤 예측</span>
-                            <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-violet-500/15 text-violet-400 font-bold">1M</span>
+                <div id="card-wrap-1m" onclick="setPeriodFilter('1m')" class="toss-card p-3 sm:p-4 rounded-2xl sm:rounded-3xl relative overflow-hidden cursor-pointer">
+                    <div class="flex items-center justify-between text-slate-400 mb-1 sm:mb-2">
+                        <div class="flex items-center gap-1">
+                            <span class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">1달 뒤 예측</span>
+                            <span class="px-1 sm:px-1.5 py-0.5 text-[9px] sm:text-[10px] rounded-full bg-violet-500/15 text-violet-400 font-bold">1M</span>
                         </div>
-                        <div class="w-7 h-7 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400">
-                            <i class="fa-solid fa-bullseye text-xs"></i>
+                        <div class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg sm:rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400">
+                            <i class="fa-solid fa-bullseye text-[10px] sm:text-xs"></i>
                         </div>
                     </div>
-                    <div class="text-2xl font-extrabold text-white" id="card-pred-1m">-원</div>
-                    <div class="flex items-center justify-between text-xs mt-1">
+                    <div class="text-lg sm:text-2xl font-extrabold text-white font-mono" id="card-pred-1m">-원</div>
+                    <div class="flex items-center justify-between text-[10px] sm:text-xs mt-0.5 sm:mt-1">
                         <span class="text-slate-400 font-mono" id="card-date-1m">-</span>
-                        <span id="card-change-1m" class="font-bold px-2 py-0.5 rounded-full text-xs">-</span>
+                        <span id="card-change-1m" class="font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs">-</span>
                     </div>
                     <div class="absolute bottom-0 left-0 right-0 h-1 bg-violet-500/40"></div>
                 </div>
@@ -509,7 +516,7 @@
     <script>
         let currentStockCode = "{{ default_stock }}";
         let currentStockName = "{{ default_stock_name }}";
-        let currentPeriodFilter = "all";
+        let currentPeriodFilter = "1m"; // 기본값: 1달
         let currentMainTab = "chart"; // 'chart' or 'ranking'
         let stockChart = null;
         let cachedData = null;
@@ -518,6 +525,16 @@
         function formatKRW(val) {
             if (val === null || val === undefined || isNaN(val)) return "-원";
             return Math.round(Number(val)).toLocaleString('ko-KR') + '원';
+        }
+
+        function formatShortDate(dateStr) {
+            if (!dateStr) return "";
+            // '2026-08-19' -> '08.19'
+            const parts = dateStr.split("-");
+            if (parts.length === 3) {
+                return `${parts[1]}.${parts[2]}`;
+            }
+            return dateStr;
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -544,14 +561,14 @@
             const rankView = document.getElementById("ranking-view-container");
 
             if (tab === "chart") {
-                chartBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30";
-                rankBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200";
+                chartBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap";
+                rankBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap";
                 chartView.classList.remove("hidden");
                 rankView.classList.add("hidden");
                 if (stockChart) stockChart.resize();
             } else {
-                rankBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30";
-                chartBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200";
+                rankBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap";
+                chartBtn.className = "flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap";
                 chartView.classList.add("hidden");
                 rankView.classList.remove("hidden");
                 if (!cachedRankings) loadRankingData();
@@ -769,15 +786,15 @@
             const pred = data.prediction;
             if (pred) {
                 document.getElementById("card-pred-1d").innerText = formatKRW(pred.pred_1d);
-                document.getElementById("card-date-1d").innerText = pred.date_1d;
+                document.getElementById("card-date-1d").innerText = formatShortDate(pred.date_1d);
                 formatChangeBadge("card-change-1d", pred.change_1d_pct);
 
                 document.getElementById("card-pred-1w").innerText = formatKRW(pred.pred_1w);
-                document.getElementById("card-date-1w").innerText = pred.date_1w;
+                document.getElementById("card-date-1w").innerText = formatShortDate(pred.date_1w);
                 formatChangeBadge("card-change-1w", pred.change_1w_pct);
 
                 document.getElementById("card-pred-1m").innerText = formatKRW(pred.pred_1m);
-                document.getElementById("card-date-1m").innerText = pred.date_1m;
+                document.getElementById("card-date-1m").innerText = formatShortDate(pred.date_1m);
                 formatChangeBadge("card-change-1m", pred.change_1m_pct);
             } else {
                 ["1d", "1w", "1m"].forEach(key => {
@@ -789,7 +806,7 @@
 
             document.getElementById("data-count-label").innerText = `시세 데이터: ${data.history ? data.history.length : 0} 건`;
 
-            updateChart(data.history, pred, currentPeriodFilter);
+            setPeriodFilter(currentPeriodFilter);
         }
 
         function formatChangeBadge(elementId, pct) {
@@ -799,19 +816,22 @@
             const sign = isUp ? "+" : "";
             el.innerText = `${sign}${pct.toFixed(2)}%`;
             if (isUp) {
-                el.className = "font-bold px-2.5 py-0.5 rounded-full text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25";
+                el.className = "font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25 font-mono";
             } else {
-                el.className = "font-bold px-2.5 py-0.5 rounded-full text-xs bg-blue-500/15 text-[#3182f6] border border-blue-500/25";
+                el.className = "font-bold px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs bg-blue-500/15 text-[#3182f6] border border-blue-500/25 font-mono";
             }
         }
 
+        // 기간 선택 필터 버튼 제어 (1주일 / 1달 / 3달 / 1년/전체)
         function setPeriodFilter(period) {
             currentPeriodFilter = period;
 
-            ['all', '1d', '1w', '1m'].forEach(p => {
+            // 세그먼트 버튼 활성화 UI
+            const activePeriodKey = (period === '1d_card') ? '1w' : period;
+            ['1w', '1m', '3m', 'all'].forEach(p => {
                 const btn = document.getElementById(`filter-btn-${p}`);
                 if (btn) {
-                    if (p === period) {
+                    if (p === activePeriodKey) {
                         btn.className = "period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-blue-600 text-white shadow-md shadow-blue-600/30";
                     } else {
                         btn.className = "period-filter-btn flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 hover:text-slate-200 transition-all";
@@ -819,10 +839,20 @@
                 }
             });
 
-            ['1d', '1w', '1m'].forEach(p => {
-                const card = document.getElementById(`card-wrap-${p}`);
+            // 하단 예측 카드 하이라이트 연동 (파란색 보더 및 글로우)
+            const activeCards = {
+                '1w': ['1w'],
+                '1d_card': ['1d'],
+                '1m': ['1m'],
+                '3m': ['1m'],
+                'all': []
+            };
+            const highlightTargets = activeCards[period] || [];
+
+            ['1d', '1w', '1m'].forEach(key => {
+                const card = document.getElementById(`card-wrap-${key}`);
                 if (card) {
-                    if (period === p) {
+                    if (highlightTargets.includes(key)) {
                         card.classList.add("toss-active-card");
                     } else {
                         card.classList.remove("toss-active-card");
@@ -839,7 +869,7 @@
             const ctx = document.getElementById("stockChart").getContext("2d");
 
             const blueGradient = ctx.createLinearGradient(0, 0, 0, 400);
-            blueGradient.addColorStop(0, 'rgba(49, 130, 246, 0.22)');
+            blueGradient.addColorStop(0, 'rgba(49, 130, 246, 0.25)');
             blueGradient.addColorStop(1, 'rgba(49, 130, 246, 0.0)');
 
             stockChart = new Chart(ctx, {
@@ -878,6 +908,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 400,
+                        easing: 'easeOutQuart'
+                    },
                     interaction: {
                         mode: 'index',
                         intersect: false,
@@ -917,7 +951,11 @@
                             },
                             ticks: {
                                 color: '#94a3b8',
-                                maxTicksLimit: 7,
+                                maxTicksLimit: 5,
+                                maxRotation: 0,
+                                minRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 12,
                                 font: {
                                     family: 'JetBrains Mono',
                                     size: 11
@@ -947,10 +985,22 @@
         }
 
         function updateChart(history, prediction, periodFilter) {
-            if (!stockChart || !history) return;
+            if (!stockChart || !history || history.length === 0) return;
 
-            const recentHistory = history.slice(-70);
-            const labels = recentHistory.map(h => h.date);
+            // 기간별 과거 데이터 슬라이싱
+            let sliceCount = 20; // 1달 기본값
+            if (periodFilter === '1w' || periodFilter === '1d_card') {
+                sliceCount = 5;  // 최근 5영업일
+            } else if (periodFilter === '1m') {
+                sliceCount = 20; // 최근 20영업일 (1달)
+            } else if (periodFilter === '3m') {
+                sliceCount = 60; // 최근 60영업일 (3달)
+            } else if (periodFilter === 'all') {
+                sliceCount = history.length; // 전체 수집 시세
+            }
+
+            const recentHistory = history.slice(-sliceCount);
+            const labels = recentHistory.map(h => formatShortDate(h.date));
             const actualPrices = recentHistory.map(h => Math.round(Number(h.close_price)));
             
             const predPrices = new Array(actualPrices.length).fill(null);
@@ -962,28 +1012,30 @@
                 const p1w = Math.round(Number(prediction.pred_1w));
                 const p1m = Math.round(Number(prediction.pred_1m));
 
-                if (periodFilter === 'all') {
-                    labels.push(prediction.date_1d + " (내일)");
+                const d1dLabel = formatShortDate(prediction.date_1d) + "(1D)";
+                const d1wLabel = formatShortDate(prediction.date_1w) + "(1W)";
+                const d1mLabel = formatShortDate(prediction.date_1m) + "(1M)";
+
+                if (periodFilter === '1w' || periodFilter === '1d_card') {
+                    // 1주일 확대 뷰: 1D와 1W까지만 줌인 표시
+                    labels.push(d1dLabel);
                     predPrices.push(p1d);
                     actualPrices.push(null);
 
-                    labels.push(prediction.date_1w + " (1주)");
+                    labels.push(d1wLabel);
+                    predPrices.push(p1w);
+                    actualPrices.push(null);
+                } else {
+                    // 1달, 3달, 전체 뷰: 1D -> 1W -> 1M 전체 예측 궤적 연결
+                    labels.push(d1dLabel);
+                    predPrices.push(p1d);
+                    actualPrices.push(null);
+
+                    labels.push(d1wLabel);
                     predPrices.push(p1w);
                     actualPrices.push(null);
 
-                    labels.push(prediction.date_1m + " (1달)");
-                    predPrices.push(p1m);
-                    actualPrices.push(null);
-                } else if (periodFilter === '1d') {
-                    labels.push(prediction.date_1d + " (내일)");
-                    predPrices.push(p1d);
-                    actualPrices.push(null);
-                } else if (periodFilter === '1w') {
-                    labels.push(prediction.date_1w + " (1주)");
-                    predPrices.push(p1w);
-                    actualPrices.push(null);
-                } else if (periodFilter === '1m') {
-                    labels.push(prediction.date_1m + " (1달)");
+                    labels.push(d1mLabel);
                     predPrices.push(p1m);
                     actualPrices.push(null);
                 }
