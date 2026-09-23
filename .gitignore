@@ -10,10 +10,10 @@ __pycache__/
 *$py.class
 *.so
 
-# Database
-*.db
-*.sqlite3
-stock_data.db
+# Database (Include pre-trained stock_data.db for Render deployment)
+# *.db
+# *.sqlite3
+# stock_data.db
 
 # Excel Data Backups
 data/excel/*.xlsx
