@@ -247,6 +247,32 @@
                 </div>
             </div>
 
+            <!-- AI Backtesting Confidence & Risk Defense Banner -->
+            <div id="backtest-banner" class="p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-[#141c2e]/90 backdrop-blur-md border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg">
+                <div class="flex items-start sm:items-center gap-2.5 min-w-0">
+                    <span id="backtest-icon-wrap" class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <i id="backtest-icon" class="fa-solid fa-bullseye text-emerald-400"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span id="backtest-badge" class="font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
+                                🎯 AI 검증 적중률 -% (분석 중)
+                            </span>
+                            <span id="backtest-stats" class="text-[11px] sm:text-xs text-slate-300 font-medium whitespace-nowrap font-mono">
+                                최근 6회 백테스팅 분석 중...
+                            </span>
+                        </div>
+                        <p id="backtest-desc" class="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed">
+                            과거 시계열 파동과 딥러닝 모델의 방향성 일치율을 검증하고 있습니다.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 text-[10px] text-slate-500 self-end sm:self-center flex-shrink-0 whitespace-nowrap">
+                    <i class="fa-solid fa-shield-halved text-blue-400"></i>
+                    <span>슬라이딩 윈도우 6구간 검증</span>
+                </div>
+            </div>
+
             <!-- 증권사 스타일 차트 기간 탭 버튼 그룹 (1주일 / 1달 / 3달 / 1년/전체) -->
             <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-1 max-w-xl">
                 <button 
@@ -643,56 +669,66 @@
                 document.getElementById("hero-stock-comment").innerText = hero.comment;
             }
 
-            // 2. 1달 TOP 5
+            // 2. 1달 TOP 5 (50% 이상 검증 종목)
             const top1mContainer = document.getElementById("top-1m-container");
             top1mContainer.innerHTML = "";
             (data.top_1m || []).forEach(item => {
                 const row = document.createElement("div");
-                row.className = "flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17]/60 hover:bg-blue-600/15 border border-slate-800/80 cursor-pointer transition-all";
+                row.className = "flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17]/60 hover:bg-blue-600/15 border border-slate-800/80 cursor-pointer transition-all gap-2";
                 row.onclick = () => selectAndNavigateStock(item.code, item.name);
                 row.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-300 font-extrabold text-xs flex items-center justify-center">${item.rank}</span>
-                        <div>
-                            <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-300 font-extrabold text-xs flex items-center justify-center flex-shrink-0">${item.rank}</span>
+                        <div class="min-w-0">
+                            <div class="text-sm font-bold text-white flex items-center gap-1.5 truncate">
                                 <span>${item.name}</span>
                                 <span class="text-[10px] font-mono text-slate-500">(${item.code})</span>
                             </div>
-                            <div class="text-xs text-slate-400 font-mono mt-0.5">
+                            <div class="text-xs text-slate-400 font-mono mt-0.5 whitespace-nowrap">
                                 <span>${formatKRW(item.current_price)}</span> <span class="text-slate-600">→</span> <span class="text-slate-200 font-semibold">${formatKRW(item.target_price)}</span>
                             </div>
                         </div>
                     </div>
-                    <span class="font-bold px-2.5 py-1 rounded-full text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25">
-                        +${item.change_pct.toFixed(1)}%
-                    </span>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 whitespace-nowrap font-mono">
+                            🎯 ${item.hit_ratio}%
+                        </span>
+                        <span class="font-bold px-2 sm:px-2.5 py-1 rounded-full text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25 whitespace-nowrap font-mono">
+                            +${item.change_pct.toFixed(1)}%
+                        </span>
+                    </div>
                 `;
                 top1mContainer.appendChild(row);
             });
 
-            // 3. 1주일 TOP 5
+            // 3. 1주일 TOP 5 (50% 이상 검증 종목)
             const top1wContainer = document.getElementById("top-1w-container");
             top1wContainer.innerHTML = "";
             (data.top_1w || []).forEach(item => {
                 const row = document.createElement("div");
-                row.className = "flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17]/60 hover:bg-blue-600/15 border border-slate-800/80 cursor-pointer transition-all";
+                row.className = "flex items-center justify-between p-3 rounded-2xl bg-[#0b0e17]/60 hover:bg-blue-600/15 border border-slate-800/80 cursor-pointer transition-all gap-2";
                 row.onclick = () => selectAndNavigateStock(item.code, item.name);
                 row.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 font-extrabold text-xs flex items-center justify-center">${item.rank}</span>
-                        <div>
-                            <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-300 font-extrabold text-xs flex items-center justify-center flex-shrink-0">${item.rank}</span>
+                        <div class="min-w-0">
+                            <div class="text-sm font-bold text-white flex items-center gap-1.5 truncate">
                                 <span>${item.name}</span>
                                 <span class="text-[10px] font-mono text-slate-500">(${item.code})</span>
                             </div>
-                            <div class="text-xs text-slate-400 font-mono mt-0.5">
+                            <div class="text-xs text-slate-400 font-mono mt-0.5 whitespace-nowrap">
                                 <span>${formatKRW(item.current_price)}</span> <span class="text-slate-600">→</span> <span class="text-slate-200 font-semibold">${formatKRW(item.target_price)}</span>
                             </div>
                         </div>
                     </div>
-                    <span class="font-bold px-2.5 py-1 rounded-full text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25">
-                        +${item.change_pct.toFixed(1)}%
-                    </span>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="font-semibold px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 whitespace-nowrap font-mono">
+                            🎯 ${item.hit_ratio}%
+                        </span>
+                        <span class="font-bold px-2 sm:px-2.5 py-1 rounded-full text-xs bg-rose-500/15 text-[#f04452] border border-rose-500/25 whitespace-nowrap font-mono">
+                            +${item.change_pct.toFixed(1)}%
+                        </span>
+                    </div>
                 `;
                 top1wContainer.appendChild(row);
             });
@@ -713,9 +749,9 @@
                         <div>현재: ${formatKRW(item.current_price)}</div>
                         <div>예상: ${formatKRW(item.target_price)}</div>
                     </div>
-                    <div class="pt-1 flex items-center justify-between">
-                        <span class="text-[10px] text-slate-500">1달 전망</span>
-                        <span class="font-bold px-2 py-0.5 rounded-full text-xs bg-blue-500/15 text-[#3182f6] border border-blue-500/25">
+                    <div class="pt-1 flex items-center justify-between border-t border-slate-800/60">
+                        <span class="text-[10px] font-mono text-slate-500">🎯 적중률 ${item.hit_ratio}%</span>
+                        <span class="font-bold px-2 py-0.5 rounded-full text-xs bg-blue-500/15 text-[#3182f6] border border-blue-500/25 font-mono">
                             ${item.change_pct.toFixed(1)}%
                         </span>
                     </div>
@@ -805,6 +841,9 @@
             document.getElementById("current-base-date").innerText = data.base_date || "-";
             document.getElementById("current-price-val").innerText = formatKRW(data.current_price);
 
+            // AI 백테스팅 검증 적중률 배너 렌더링
+            renderBacktestBanner(data.backtest);
+
             // 카드 1: 기준가
             document.getElementById("card-base-price").innerText = formatKRW(data.current_price);
             document.getElementById("card-base-date").innerText = data.base_date || "-";
@@ -838,6 +877,43 @@
 
             // 2. 현재 선택된 기간 필터 범위로 줌 적용
             setPeriodFilter(currentPeriodFilter);
+        }
+
+        // AI 백테스팅 적중률 신뢰도 3단계 배너 렌더링
+        function renderBacktestBanner(bt) {
+            if (!bt) return;
+            const banner = document.getElementById("backtest-banner");
+            const iconWrap = document.getElementById("backtest-icon-wrap");
+            const icon = document.getElementById("backtest-icon");
+            const badge = document.getElementById("backtest-badge");
+            const stats = document.getElementById("backtest-stats");
+            const desc = document.getElementById("backtest-desc");
+
+            if (!banner) return;
+
+            if (bt.grade_code === "high" || bt.hit_ratio >= 70) {
+                banner.className = "p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-emerald-950/20 border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-emerald-950/20";
+                iconWrap.className = "w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                icon.className = "fa-solid fa-bullseye text-emerald-400";
+                badge.className = "font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono";
+                badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i> 🎯 AI 검증 적중률 ${bt.hit_ratio}% (${bt.grade})`;
+            } else if (bt.grade_code === "normal" || bt.hit_ratio >= 50) {
+                banner.className = "p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-blue-950/20 border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-blue-950/20";
+                iconWrap.className = "w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-blue-500/20 text-blue-300 border border-blue-500/40";
+                icon.className = "fa-solid fa-chart-line text-blue-400";
+                badge.className = "font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-blue-500/20 text-blue-300 border border-blue-500/40 font-mono";
+                badge.innerHTML = `<i class="fa-solid fa-chart-simple text-blue-400 text-xs"></i> 📊 AI 검증 적중률 ${bt.hit_ratio}% (${bt.grade})`;
+            } else {
+                // caution (50% 미만 리스크 경고)
+                banner.className = "p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-amber-950/25 border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-amber-950/30";
+                iconWrap.className = "w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-amber-500/25 text-amber-300 border border-amber-500/50";
+                icon.className = "fa-solid fa-triangle-exclamation text-amber-400";
+                badge.className = "font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-amber-500/25 text-amber-300 border border-amber-500/50 font-mono animate-pulse";
+                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xs"></i> ⚠️ AI 검증 적중률 ${bt.hit_ratio}% (변동성 주의)`;
+            }
+
+            stats.innerText = `최근 ${bt.total_tests}회 중 ${bt.hit_count}회 방향 적중 · 평균 오차율 ±${bt.mape}%`;
+            desc.innerText = bt.desc;
         }
 
         function formatChangeBadge(elementId, pct) {

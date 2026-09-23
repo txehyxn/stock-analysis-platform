@@ -18,6 +18,7 @@ from database.db_manager import (
     get_latest_prediction, 
     get_stock_list, 
     get_all_latest_rankings,
+    calculate_stock_backtest,
     STOCK_INFO,
     init_db
 )
@@ -149,6 +150,9 @@ async def api_stock_detail(stock_code: str):
     current_price = history[-1]["close_price"]
     base_date = history[-1]["date"]
 
+    # AI 백테스팅 적중률 및 신뢰도 지표 계산
+    backtest = calculate_stock_backtest(stock_code, raw_history)
+
     prediction_data = None
     if prediction:
         pred_1d = int(round(float(prediction["pred_1d"])))
@@ -182,7 +186,8 @@ async def api_stock_detail(stock_code: str):
         "current_price": current_price,
         "base_date": base_date,
         "history": history,
-        "prediction": prediction_data
+        "prediction": prediction_data,
+        "backtest": backtest
     }
 
 @app.get("/api/ranking")
