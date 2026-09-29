@@ -42,3 +42,23 @@ CREATE TABLE IF NOT EXISTS user_favorites (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON user_favorites (user_id);
+
+-- 실전 예측 자동 채점 및 로그 테이블
+CREATE TABLE IF NOT EXISTS prediction_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_code VARCHAR(10) NOT NULL,
+    predicted_at DATE NOT NULL,
+    target_date DATE NOT NULL,
+    period_type VARCHAR(5) NOT NULL, -- '1D' 또는 '1W'
+    base_price INTEGER NOT NULL,
+    predicted_price INTEGER NOT NULL,
+    actual_price INTEGER,
+    is_hit BOOLEAN,
+    error_rate REAL,
+    status VARCHAR(10) DEFAULT 'PENDING', -- 'PENDING' 또는 'EVALUATED'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(stock_code, predicted_at, period_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pred_logs_stock_target ON prediction_logs (stock_code, target_date);
+CREATE INDEX IF NOT EXISTS idx_pred_logs_status ON prediction_logs (status);

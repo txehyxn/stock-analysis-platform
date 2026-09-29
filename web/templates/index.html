@@ -261,6 +261,14 @@
             border-color: #e2e8f0 !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
         }
+        html.light #stock-eval-mini-widget {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+        html.light #stock-eval-mini-widget span.text-white {
+            color: #0f172a !important;
+        }
         html.light #prediction-accuracy-card p {
             color: #334155 !important;
         }
@@ -278,6 +286,25 @@
             background-color: #f1f5f9 !important;
             border-color: #cbd5e1 !important;
             color: #334155 !important;
+        }
+        html.light .eval-filter-btn {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #475569 !important;
+        }
+        html.light .eval-item-card {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+        }
+        html.light .eval-item-card:hover {
+            border-color: rgba(49, 130, 246, 0.4) !important;
+            background-color: #f8fafc !important;
+        }
+        html.light #eval-search-input {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #0f172a !important;
         }
         html.light .bg-emerald-950\/20 {
             background-color: rgba(16, 185, 129, 0.08) !important;
@@ -419,31 +446,39 @@
         </div>
     </header>
 
-    <!-- Main Navigation Bar: [📊 차트 분석] vs [⚡ AI 랭킹 픽] vs [⭐ 내 관심] -->
+    <!-- Main Navigation Bar: [📊 차트 분석] vs [⚡ AI 랭킹 픽] vs [⭐ 내 관심] vs [🎯 AI 성적표] -->
     <div class="max-w-7xl w-full mx-auto px-4 sm:px-6 pt-4">
-        <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1 max-w-lg">
+        <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800 flex items-center gap-1 max-w-2xl overflow-x-auto no-scrollbar">
             <button 
                 id="main-tab-chart"
                 onclick="switchMainTab('chart')"
-                class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap">
+                class="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all bg-blue-600 text-white shadow-lg shadow-blue-600/30 whitespace-nowrap">
                 <i class="fa-solid fa-chart-line text-xs"></i>
                 <span>차트 분석</span>
             </button>
             <button 
                 id="main-tab-ranking"
                 onclick="switchMainTab('ranking')"
-                class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                class="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
                 <i class="fa-solid fa-bolt text-amber-400 text-xs"></i>
                 <span>AI 랭킹 픽</span>
-                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-amber-400 animate-ping"></span>
             </button>
             <button 
                 id="main-tab-favorites"
                 onclick="switchMainTab('favorites')"
-                class="flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                class="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
                 <i class="fa-solid fa-star text-amber-400 text-xs"></i>
                 <span>내 관심</span>
                 <span id="fav-tab-count-badge" class="hidden px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">0</span>
+            </button>
+            <button 
+                id="main-tab-evaluation"
+                onclick="switchMainTab('evaluation')"
+                class="flex-1 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1 sm:gap-2 transition-all text-slate-400 hover:text-slate-200 whitespace-nowrap">
+                <i class="fa-solid fa-bullseye text-emerald-400 text-xs"></i>
+                <span>AI 성적표</span>
+                <span id="eval-tab-hit-rate" class="px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-extrabold">58%</span>
             </button>
         </div>
     </div>
@@ -579,6 +614,40 @@
                 <div class="flex items-center gap-1 text-[10px] text-slate-500 self-end sm:self-center flex-shrink-0 whitespace-nowrap">
                     <i class="fa-solid fa-shield-halved text-blue-400"></i>
                     <span>슬라이딩 윈도우 6구간 검증</span>
+                </div>
+            </div>
+
+            <!-- 종목별 최근 실전 채점 결과 미니 위젯 -->
+            <div id="stock-eval-mini-widget" class="p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 bg-[#141c2e] border-slate-800 shadow-md">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-start sm:items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-bold text-white tracking-tight">이 종목 AI 실전 채점 성적표</span>
+                                <span id="mini-eval-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                                    채점 집계 중...
+                                </span>
+                            </div>
+                            <p id="mini-eval-summary" class="text-xs text-slate-400 mt-0.5 font-sans">
+                                과거 도래일 실제 종가 대조 채점 내역을 불러오고 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-end sm:self-center flex-wrap">
+                        <div id="mini-eval-chips" class="flex items-center gap-1.5 flex-wrap">
+                            <!-- JS로 최근 채점 칩 렌더링 -->
+                        </div>
+                        <button 
+                            onclick="viewFullStockEvaluation()" 
+                            class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
+                            <i class="fa-solid fa-bullseye text-xs"></i>
+                            <span>성적표 상세</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -1017,6 +1086,123 @@
 
         </div>
 
+        <!-- ========================================== -->
+        <!-- VIEW 4: [🎯 AI 성적표 대시보드 뷰] -->
+        <!-- ========================================== -->
+        <div id="evaluation-view-container" class="hidden space-y-5">
+
+            <!-- Evaluation Hero Header Banner -->
+            <div class="p-4 sm:p-5 rounded-3xl toss-card border-slate-800 bg-gradient-to-r from-emerald-950/30 via-[#141c2e] to-blue-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start sm:items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-cyan-500 flex items-center justify-center text-white text-xl shadow-lg shadow-emerald-500/25 flex-shrink-0">
+                        <i class="fa-solid fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h2 class="text-base sm:text-lg font-bold text-white tracking-tight">AI 실전 예측 성적표</h2>
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
+                                100% 자동 채점
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">
+                            과거 AI가 제시했던 목표가와 실제 도래일 종가를 1:1 대조하여 방향 적중 및 오차율을 투명하게 공개합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+                    <button 
+                        onclick="loadEvaluationData()" 
+                        class="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700/80 flex items-center gap-1.5 transition-all cursor-pointer">
+                        <i id="eval-refresh-icon" class="fa-solid fa-rotate-right text-emerald-400 text-xs"></i>
+                        <span>새로고침</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3 Summary Metrics Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                
+                <!-- Metric 1: 실전 누적 적중률 -->
+                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">실전 누적 적중률</span>
+                        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono" id="eval-summary-hit-rate">--%</div>
+                    <div class="text-xs text-slate-400 mt-1 font-mono flex items-center justify-between">
+                        <span id="eval-summary-hits">--건 적중 / --건 완료</span>
+                        <span class="text-emerald-500/80 font-bold text-[10px]">방향성 일치 기준</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+                </div>
+
+                <!-- Metric 2: 평균 주가 오차율 -->
+                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">평균 주가 오차율</span>
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-blue-400 font-mono" id="eval-summary-error-rate">±--%</div>
+                    <div class="text-xs text-slate-400 mt-1 flex items-center justify-between">
+                        <span class="text-slate-400">실제 종가 대비 평균 편차</span>
+                        <span class="text-blue-400/80 font-mono font-bold text-[10px]">MAPE</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                </div>
+
+                <!-- Metric 3: 총 검증 완료 건수 -->
+                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider">총 검증 완료 건수</span>
+                        <div class="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-list-check"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono" id="eval-summary-total">--건</div>
+                    <div class="text-xs text-slate-400 mt-1 font-mono flex items-center justify-between">
+                        <span id="eval-summary-pending">--건 검증 대기 중</span>
+                        <span class="text-violet-400/80 font-bold text-[10px]">1D / 1W 실전</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500"></div>
+                </div>
+
+            </div>
+
+            <!-- Filter Tabs & Stock Search Filter -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-[#141c2e] p-1 rounded-2xl border border-slate-800">
+                    <button onclick="filterEvaluations('all')" id="eval-filter-all" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm whitespace-nowrap cursor-pointer">전체 보기</button>
+                    <button onclick="filterEvaluations('hit')" id="eval-filter-hit" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">🎯 적중만 (<span id="eval-count-hit">0</span>)</button>
+                    <button onclick="filterEvaluations('miss')" id="eval-filter-miss" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">❌ 빗나감 (<span id="eval-count-miss">0</span>)</button>
+                    <button onclick="filterEvaluations('pending')" id="eval-filter-pending" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">⏳ 대기중 (<span id="eval-count-pending">0</span>)</button>
+                </div>
+
+                <div class="relative w-full sm:w-64">
+                    <input 
+                        type="text" 
+                        id="eval-search-input" 
+                        oninput="onSearchEvaluations(this.value)" 
+                        placeholder="종목명 또는 코드 검색..." 
+                        class="w-full bg-[#141c2e] border border-slate-700/80 rounded-xl px-3.5 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+                </div>
+            </div>
+
+            <!-- Evaluations List Container -->
+            <div id="evaluation-list-container" class="space-y-3 pt-1">
+                <div class="toss-card p-8 rounded-3xl text-center text-slate-500">
+                    <i class="fa-solid fa-spinner fa-spin text-xl text-blue-500 mb-2"></i>
+                    <p class="text-xs">실전 예측 채점 데이터를 불러오는 중입니다...</p>
+                </div>
+            </div>
+
+        </div>
+
     </main>
 
     <!-- ========================================== -->
@@ -1197,7 +1383,7 @@
         }
 
         // ====================================================
-        // 메인 탭 전환 로직 (차트 분석 / AI 랭킹 픽 / 내 관심)
+        // 메인 탭 전환 로직 (차트 분석 / AI 랭킹 픽 / 내 관심 / AI 성적표)
         // ====================================================
         window.switchMainTab = function(tab) {
             console.log('[switchMainTab Clicked]', tab);
@@ -1205,10 +1391,12 @@
             const chartContainer = document.getElementById('chart-view-container');
             const rankingContainer = document.getElementById('ranking-view-container');
             const favContainer = document.getElementById('favorites-view-container');
+            const evalContainer = document.getElementById('evaluation-view-container');
 
             const tabChart = document.getElementById('main-tab-chart');
             const tabRank = document.getElementById('main-tab-ranking');
             const tabFav = document.getElementById('main-tab-favorites');
+            const tabEval = document.getElementById('main-tab-evaluation');
 
             // 1. 뷰 컨테이너 토글
             if (chartContainer) chartContainer.classList.toggle('hidden', tab !== 'chart');
@@ -1228,18 +1416,24 @@
                     }
                 }
             }
+            if (evalContainer) {
+                evalContainer.classList.toggle('hidden', tab !== 'evaluation');
+                if (tab === 'evaluation') {
+                    loadEvaluationData();
+                }
+            }
 
             // 2. 탭 버튼 스타일 갱신 (선택된 탭 하이라이트)
             const activeClasses = ['bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-600/30'];
             const inactiveClasses = ['text-slate-400', 'hover:text-white', 'hover:bg-slate-800/60'];
 
-            [tabChart, tabRank, tabFav].forEach(btn => {
+            [tabChart, tabRank, tabFav, tabEval].forEach(btn => {
                 if (!btn) return;
                 btn.classList.remove(...activeClasses);
                 btn.classList.add(...inactiveClasses);
             });
 
-            const currentBtn = tab === 'chart' ? tabChart : (tab === 'ranking' ? tabRank : tabFav);
+            const currentBtn = tab === 'chart' ? tabChart : (tab === 'ranking' ? tabRank : (tab === 'favorites' ? tabFav : tabEval));
             if (currentBtn) {
                 currentBtn.classList.remove(...inactiveClasses);
                 currentBtn.classList.add(...activeClasses);
@@ -1254,6 +1448,320 @@
             if (typeof loadFavoritesData === 'function') {
                 return loadFavoritesData();
             }
+        }
+
+        // ====================================================
+        // [🎯 AI 성적표] 데이터 로드 및 렌더링
+        // ====================================================
+        let cachedEvaluations = [];
+        let currentEvalFilter = 'all';
+        let currentEvalSearch = '';
+
+        async function loadEvaluationData() {
+            const refreshIcon = document.getElementById("eval-refresh-icon");
+            if (refreshIcon) refreshIcon.classList.add("fa-spin");
+            
+            try {
+                const resp = await fetch("/api/evaluations?limit=60");
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                
+                // 1. 요약 메트릭 카드 갱신
+                const s = data.summary || {};
+                const hitRateEl = document.getElementById("eval-summary-hit-rate");
+                const hitsEl = document.getElementById("eval-summary-hits");
+                const errRateEl = document.getElementById("eval-summary-error-rate");
+                const totalEl = document.getElementById("eval-summary-total");
+                const pendingEl = document.getElementById("eval-summary-pending");
+                const tabHitRate = document.getElementById("eval-tab-hit-rate");
+
+                if (hitRateEl) hitRateEl.innerText = `${s.hit_rate || 0}%`;
+                if (hitsEl) hitsEl.innerText = `${s.hit_count || 0}건 적중 / ${s.total_count || 0}건 완료`;
+                if (errRateEl) errRateEl.innerText = `±${s.avg_error_rate || 0}%`;
+                if (totalEl) totalEl.innerText = `${s.total_count || 0}건`;
+                if (pendingEl) pendingEl.innerText = `${s.pending_count || 0}건 검증 대기 중`;
+                if (tabHitRate) tabHitRate.innerText = `${s.hit_rate || 0}%`;
+
+                // 2. 캐시 및 필터링 렌더링
+                cachedEvaluations = data.evaluations || [];
+                
+                // 카운트 배지 갱신
+                const hitCount = cachedEvaluations.filter(e => e.status === 'EVALUATED' && e.is_hit).length;
+                const missCount = cachedEvaluations.filter(e => e.status === 'EVALUATED' && !e.is_hit).length;
+                const pendingCount = cachedEvaluations.filter(e => e.status === 'PENDING').length;
+
+                const hitCntEl = document.getElementById("eval-count-hit");
+                const missCntEl = document.getElementById("eval-count-miss");
+                const pendCntEl = document.getElementById("eval-count-pending");
+                if (hitCntEl) hitCntEl.innerText = hitCount;
+                if (missCntEl) missCntEl.innerText = missCount;
+                if (pendCntEl) pendCntEl.innerText = pendingCount;
+
+                applyEvaluationFilters();
+            } catch (err) {
+                console.error("성적표 데이터 로드 실패:", err);
+                const container = document.getElementById("evaluation-list-container");
+                if (container) {
+                    container.innerHTML = `
+                        <div class="toss-card p-8 rounded-3xl text-center text-rose-400">
+                            <i class="fa-solid fa-triangle-exclamation text-2xl mb-2"></i>
+                            <p class="text-xs">성적표 데이터를 불러오는데 실패했습니다: ${err.message}</p>
+                        </div>
+                    `;
+                }
+            } finally {
+                if (refreshIcon) {
+                    setTimeout(() => refreshIcon.classList.remove("fa-spin"), 600);
+                }
+            }
+        }
+
+        function filterEvaluations(filterType) {
+            currentEvalFilter = filterType;
+            ['all', 'hit', 'miss', 'pending'].forEach(type => {
+                const btn = document.getElementById(`eval-filter-${type}`);
+                if (!btn) return;
+                if (type === filterType) {
+                    btn.className = "eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm whitespace-nowrap cursor-pointer";
+                } else {
+                    btn.className = "eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer";
+                }
+            });
+            applyEvaluationFilters();
+        }
+
+        function onSearchEvaluations(keyword) {
+            currentEvalSearch = (keyword || '').trim().toLowerCase();
+            applyEvaluationFilters();
+        }
+
+        function applyEvaluationFilters() {
+            let filtered = cachedEvaluations;
+
+            // 1. 상태 필터
+            if (currentEvalFilter === 'hit') {
+                filtered = filtered.filter(e => e.status === 'EVALUATED' && e.is_hit);
+            } else if (currentEvalFilter === 'miss') {
+                filtered = filtered.filter(e => e.status === 'EVALUATED' && !e.is_hit);
+            } else if (currentEvalFilter === 'pending') {
+                filtered = filtered.filter(e => e.status === 'PENDING');
+            }
+
+            // 2. 검색어 필터
+            if (currentEvalSearch) {
+                filtered = filtered.filter(e => 
+                    (e.stock_name && e.stock_name.toLowerCase().includes(currentEvalSearch)) ||
+                    (e.stock_code && e.stock_code.includes(currentEvalSearch))
+                );
+            }
+
+            renderEvaluationList(filtered);
+        }
+
+        function renderEvaluationList(items) {
+            const container = document.getElementById("evaluation-list-container");
+            if (!container) return;
+
+            if (!items || items.length === 0) {
+                container.innerHTML = `
+                    <div class="toss-card p-10 rounded-3xl text-center space-y-2 border-slate-800">
+                        <i class="fa-solid fa-folder-open text-3xl text-slate-600 mb-1"></i>
+                        <h4 class="text-sm font-bold text-slate-300">해당 조건의 채점 내역이 없습니다</h4>
+                        <p class="text-xs text-slate-500">다른 필터나 검색어를 입력해보세요.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = "";
+            items.forEach(item => {
+                const isEvaluated = item.status === 'EVALUATED';
+                const isHit = item.is_hit;
+                
+                let badgeClass = "bg-blue-500/20 text-blue-400 border border-blue-500/30";
+                let badgeIcon = '<i class="fa-solid fa-clock text-xs"></i>';
+                let verdictText = item.verdict_label || '⏳ 진행중';
+
+                if (isEvaluated) {
+                    if (isHit) {
+                        badgeClass = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                        badgeIcon = '<i class="fa-solid fa-circle-check text-xs"></i>';
+                    } else {
+                        badgeClass = "bg-rose-500/20 text-rose-300 border border-rose-500/40";
+                        badgeIcon = '<i class="fa-solid fa-circle-xmark text-xs"></i>';
+                    }
+                }
+
+                const baseP = formatKRW(item.base_price);
+                const predP = formatKRW(item.predicted_price);
+                const actualP = item.actual_price ? formatKRW(item.actual_price) : '<span class="text-slate-500 font-sans text-xs">장 마감 대기</span>';
+                const errText = item.error_rate !== null ? `±${item.error_rate}%` : '-';
+
+                const predChg = item.pred_change_pct;
+                const predChgSign = predChg >= 0 ? `+${predChg}%` : `${predChg}%`;
+                const predChgColor = predChg >= 0 ? 'text-[#f04452]' : 'text-[#3182f6]';
+
+                const actualChg = item.actual_change_pct;
+                const actualChgSign = actualChg !== null ? (actualChg >= 0 ? `+${actualChg}%` : `${actualChg}%`) : '';
+                const actualChgColor = actualChg !== null ? (actualChg >= 0 ? 'text-[#f04452]' : 'text-[#3182f6]') : 'text-slate-400';
+
+                html += `
+                    <div class="eval-item-card toss-card p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border transition-all hover:scale-[1.005] cursor-pointer" onclick="selectStockAndShowChart('${item.stock_code}', '${item.stock_name}')">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center font-bold text-xs font-mono flex-shrink-0">
+                                    ${item.period_type}
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="text-sm font-bold text-white tracking-tight">${item.stock_name}</h4>
+                                        <span class="text-[11px] text-slate-500 font-mono">${item.stock_code}</span>
+                                        <span class="px-2 py-0.2 rounded-full text-[10px] font-bold ${badgeClass} inline-flex items-center gap-1 font-mono">
+                                            ${badgeIcon}
+                                            <span>${verdictText}</span>
+                                        </span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 font-mono">
+                                        <span>예측: ${item.predicted_at}</span>
+                                        <span class="text-slate-600">→</span>
+                                        <span>도래일: <strong class="text-slate-300">${item.target_date}</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
+                                <div class="text-left sm:text-right">
+                                    <span class="text-[10px] text-slate-500 uppercase tracking-wider block">기준가 → AI 목표</span>
+                                    <div class="text-xs sm:text-sm font-bold font-mono text-slate-300">
+                                        ${baseP} → <span class="text-blue-400 font-extrabold">${predP}</span>
+                                        <span class="text-[10px] ${predChgColor}">(${predChgSign})</span>
+                                    </div>
+                                </div>
+
+                                <div class="text-left sm:text-right">
+                                    <span class="text-[10px] text-slate-500 uppercase tracking-wider block">도래일 실제 종가</span>
+                                    <div class="text-xs sm:text-sm font-extrabold font-mono text-white">
+                                        ${actualP}
+                                        ${actualChgSign ? `<span class="text-[10px] ${actualChgColor}">(${actualChgSign})</span>` : ''}
+                                    </div>
+                                </div>
+
+                                <div class="text-right min-w-[70px]">
+                                    <span class="text-[10px] text-slate-500 uppercase tracking-wider block">주가 오차율</span>
+                                    <div class="text-xs sm:text-sm font-extrabold font-mono ${isEvaluated ? (isHit ? 'text-emerald-400' : 'text-rose-400') : 'text-slate-400'}">
+                                        ${errText}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 성적표 카드 클릭 시 바로 차트 뷰로 이동하며 해당 종목 선택
+        function selectStockAndShowChart(code, name) {
+            if (typeof loadStockDetail === 'function') {
+                loadStockDetail(code, name);
+            } else if (typeof loadStockData === 'function') {
+                loadStockData(code, name);
+            }
+            switchMainTab('chart');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 상단 탭 뱃지 적중률 자동 갱신 함수
+        async function loadEvaluationSummaryBadge() {
+            try {
+                const resp = await fetch("/api/evaluations?limit=1");
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (data.summary && data.summary.hit_rate !== undefined) {
+                    const tabBadge = document.getElementById("eval-tab-hit-rate");
+                    if (tabBadge) {
+                        tabBadge.innerText = `${data.summary.hit_rate}%`;
+                    }
+                }
+            } catch (e) {
+                console.warn("상단 탭 성적표 배지 갱신 실패:", e);
+            }
+        }
+
+        // 차트 상세 뷰의 종목별 최근 실전 채점 결과 미니 위젯 연동
+        async function loadStockEvaluationMini(stockCode) {
+            if (!stockCode) return;
+            try {
+                const resp = await fetch(`/api/stock/${stockCode}/evaluations?limit=5`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                renderStockEvaluationMini(data);
+            } catch (e) {
+                console.error("미니 채점 결과 로드 실패:", e);
+            }
+        }
+
+        function renderStockEvaluationMini(data) {
+            const badge = document.getElementById("mini-eval-badge");
+            const summary = document.getElementById("mini-eval-summary");
+            const chipsContainer = document.getElementById("mini-eval-chips");
+            if (!badge || !summary || !chipsContainer) return;
+
+            const s = data.summary || {};
+            const evals = data.evaluations || [];
+            
+            if (s.total_count > 0) {
+                const hitColor = s.hit_rate >= 50 ? 'emerald' : 'rose';
+                const hitBorder = s.hit_rate >= 50 ? 'border-emerald-500/30' : 'border-rose-500/30';
+                const hitBg = s.hit_rate >= 50 ? 'bg-emerald-500/15' : 'bg-rose-500/15';
+                const hitText = s.hit_rate >= 50 ? 'text-emerald-400' : 'text-rose-400';
+
+                badge.className = `px-2 py-0.5 rounded-full text-[11px] font-bold font-mono ${hitBg} ${hitText} border ${hitBorder}`;
+                badge.innerText = `적중률 ${s.hit_rate}% (${s.hit_count}건 적중 / 총 ${s.total_count}건)`;
+                summary.innerHTML = `실제 종가 대조 평균 오차율 <strong class="text-blue-400 font-mono">±${s.avg_error_rate}%</strong> · 과거 100% 자동 채점`;
+            } else {
+                badge.className = "px-2 py-0.5 rounded-full text-[11px] font-bold font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30";
+                badge.innerText = "검증 대기중 (진행중)";
+                summary.innerText = "목표일 도래 시 당일 종가로 자동 채점 완료됩니다.";
+            }
+
+            // 최근 채점 완료 또는 대기 칩 2건
+            let chipsHtml = "";
+            evals.slice(0, 2).forEach(item => {
+                if (item.status === 'EVALUATED') {
+                    const isHit = item.is_hit;
+                    const cls = isHit ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-rose-500/15 text-rose-400 border-rose-500/30";
+                    const icon = isHit ? "fa-circle-check" : "fa-circle-xmark";
+                    chipsHtml += `
+                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border ${cls} inline-flex items-center gap-1">
+                            <i class="fa-solid ${icon}"></i>
+                            ${item.period_type} ${item.verdict_label || (isHit ? '적중' : '불발')} (±${item.error_rate}%)
+                        </span>
+                    `;
+                } else {
+                    chipsHtml += `
+                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold border bg-blue-500/15 text-blue-400 border-blue-500/30 inline-flex items-center gap-1">
+                            <i class="fa-solid fa-clock"></i>
+                            ${item.period_type} 도래일(${item.target_date})
+                        </span>
+                    `;
+                }
+            });
+            chipsContainer.innerHTML = chipsHtml;
+        }
+
+        // 미니 위젯에서 [성적표 상세] 클릭 시 해당 종목을 검색한 채로 성적표 탭으로 이동
+        function viewFullStockEvaluation() {
+            switchMainTab('evaluation');
+            const searchInput = document.getElementById("eval-search-input");
+            if (searchInput && currentStockName) {
+                searchInput.value = currentStockName;
+                onSearchEvaluations(currentStockName);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // ====================================================
@@ -1961,6 +2469,11 @@
                 renderPredictionAccuracy(data.verification, data.backtest);
             }
 
+            // 종목별 최근 실전 채점 결과 미니 위젯 갱신
+            if (typeof loadStockEvaluationMini === 'function') {
+                loadStockEvaluationMini(data.stock_code);
+            }
+
             // 카드 1: 기준가
             document.getElementById("card-base-price").innerText = formatKRW(data.current_price);
             document.getElementById("card-base-date").innerText = data.base_date || "-";
@@ -2627,6 +3140,11 @@
                 loadAllRankings();
             } else if (typeof loadRankingData === 'function') {
                 loadRankingData();
+            }
+
+            // 4) [🎯 AI 성적표] 상단 요약 배지 초기 로드
+            if (typeof loadEvaluationSummaryBadge === 'function') {
+                loadEvaluationSummaryBadge();
             }
 
             // 4. 외부 클릭 시 모달 및 드롭다운 닫기

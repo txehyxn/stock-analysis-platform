@@ -4,6 +4,7 @@ import hashlib
 import secrets
 import hmac
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
@@ -92,6 +93,21 @@ def init_db():
         conn.commit()
     finally:
         conn.close()
+
+def add_business_days(start_date_str: str, n_days: int) -> str:
+    """영업일(주말 제외) 기준 N일 뒤의 예상 날짜 문자열(YYYY-MM-DD)을 계산합니다."""
+    try:
+        dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+    except ValueError:
+        return start_date_str
+    
+    added = 0
+    current = dt
+    while added < n_days:
+        current += timedelta(days=1)
+        if current.weekday() < 5:  # 월(0) ~ 금(4)
+            added += 1
+    return current.strftime("%Y-%m-%d")
 
 def save_daily_prices(df: pd.DataFrame) -> int:
     """
@@ -486,6 +502,311 @@ def get_prediction_verification(stock_code: str) -> Dict[str, Any]:
             "latest_verified": latest_verified,
             "history": verifications
         }
+    finally:
+        conn.close()
+
+def save_prediction_log(
+    stock_code: str,
+    predicted_at: str,
+    target_date: str,
+    period_type: str,
+    base_price: int,
+    predicted_price: int,
+    actual_price: Optional[int] = None,
+    is_hit: Optional[bool] = None,
+    error_rate: Optional[float] = None,
+    status: str = "PENDING"
+) -> int:
+    """
+    실전 예측 로그(prediction_logs)를 저장하거나 갱신합니다.
+    (stock_code, predicted_at, period_type) 기준 중복 방지.
+    """
+    init_db()
+    conn = get_connection()
+    stock_code = str(stock_code).zfill(6)
+    try:
+        cursor = conn.cursor()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        
+        if is_sqlite:
+            query = """
+                INSERT INTO prediction_logs (
+                    stock_code, predicted_at, target_date, period_type,
+                    base_price, predicted_price, actual_price, is_hit, error_rate, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(stock_code, predicted_at, period_type) DO UPDATE SET
+                    target_date = excluded.target_date,
+                    base_price = excluded.base_price,
+                    predicted_price = excluded.predicted_price,
+                    actual_price = COALESCE(excluded.actual_price, prediction_logs.actual_price),
+                    is_hit = COALESCE(excluded.is_hit, prediction_logs.is_hit),
+                    error_rate = COALESCE(excluded.error_rate, prediction_logs.error_rate),
+                    status = CASE 
+                        WHEN excluded.status = 'EVALUATED' THEN 'EVALUATED'
+                        ELSE prediction_logs.status
+                    END
+            """
+            cursor.execute(query, (
+                stock_code, str(predicted_at)[:10], str(target_date)[:10], period_type,
+                int(base_price), int(predicted_price), actual_price,
+                1 if is_hit is True else (0 if is_hit is False else None),
+                error_rate, status
+            ))
+            pred_id = cursor.lastrowid
+        else:
+            query = """
+                INSERT INTO prediction_logs (
+                    stock_code, predicted_at, target_date, period_type,
+                    base_price, predicted_price, actual_price, is_hit, error_rate, status
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (stock_code, predicted_at, period_type) DO UPDATE SET
+                    target_date = EXCLUDED.target_date,
+                    base_price = EXCLUDED.base_price,
+                    predicted_price = EXCLUDED.predicted_price,
+                    actual_price = COALESCE(EXCLUDED.actual_price, prediction_logs.actual_price),
+                    is_hit = COALESCE(EXCLUDED.is_hit, prediction_logs.is_hit),
+                    error_rate = COALESCE(EXCLUDED.error_rate, prediction_logs.error_rate),
+                    status = CASE 
+                        WHEN EXCLUDED.status = 'EVALUATED' THEN 'EVALUATED'
+                        ELSE prediction_logs.status
+                    END
+                RETURNING id
+            """
+            cursor.execute(query, (
+                stock_code, str(predicted_at)[:10], str(target_date)[:10], period_type,
+                int(base_price), int(predicted_price), actual_price,
+                is_hit, error_rate, status
+            ))
+            pred_id = cursor.fetchone()[0]
+
+        conn.commit()
+        return pred_id
+    finally:
+        conn.close()
+
+def evaluate_pending_predictions(today_date: Optional[str] = None) -> int:
+    """
+    목표일(target_date)이 오늘이거나 지난 PENDING 건들에 대해,
+    실제 도래일(또는 직후 첫 거래일)의 실제 종가를 가져와 방향 일치(is_hit) 및 오차율(error_rate)을 계산 후 EVALUATED 처리합니다.
+    """
+    init_db()
+    conn = get_connection()
+    if not today_date:
+        today_date = datetime.now().strftime("%Y-%m-%d")
+
+    evaluated_count = 0
+    try:
+        cursor = conn.cursor()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        
+        q = """
+            SELECT id, stock_code, predicted_at, target_date, period_type, base_price, predicted_price
+            FROM prediction_logs
+            WHERE status = 'PENDING' AND target_date <= ?
+            ORDER BY target_date ASC
+        """
+        if not is_sqlite:
+            q = q.replace("?", "%s")
+        cursor.execute(q, (today_date,))
+        rows = cursor.fetchall()
+
+        for r in rows:
+            if is_sqlite:
+                log_id, code, pred_at, target_dt, p_type, base_p, pred_p = (
+                    r["id"], r["stock_code"], r["predicted_at"], r["target_date"],
+                    r["period_type"], r["base_price"], r["predicted_price"]
+                )
+            else:
+                log_id, code, pred_at, target_dt, p_type, base_p, pred_p = r
+
+            # target_date 당일 또는 직후 첫 거래일 실제 종가 조회
+            price_q = """
+                SELECT date, close_price 
+                FROM stock_daily_price 
+                WHERE stock_code = ? AND date >= ? 
+                ORDER BY date ASC LIMIT 1
+            """
+            if not is_sqlite:
+                price_q = price_q.replace("?", "%s")
+            cursor.execute(price_q, (code, target_dt))
+            price_row = cursor.fetchone()
+
+            if not price_row:
+                continue
+
+            actual_date = price_row[0] if not is_sqlite else price_row["date"]
+            actual_price = int(round(float(price_row[1] if not is_sqlite else price_row["close_price"])))
+
+            # 방향 적중 판정 (상승/하락 방향성 일치 여부)
+            pred_dir = 1 if pred_p >= base_p else -1
+            actual_dir = 1 if actual_price >= base_p else -1
+            is_hit = (pred_dir == actual_dir)
+
+            # 오차율 계산: abs(예측가 - 실제가) / 실제가 * 100
+            error_rate = round(abs(pred_p - actual_price) / (actual_price + 1e-9) * 100, 2)
+
+            update_q = """
+                UPDATE prediction_logs
+                SET actual_price = ?, is_hit = ?, error_rate = ?, status = 'EVALUATED'
+                WHERE id = ?
+            """
+            if not is_sqlite:
+                update_q = update_q.replace("?", "%s")
+            cursor.execute(update_q, (actual_price, 1 if is_hit else 0, error_rate, log_id))
+            evaluated_count += 1
+
+        conn.commit()
+        return evaluated_count
+    finally:
+        conn.close()
+
+def get_evaluation_summary(stock_code: Optional[str] = None) -> Dict[str, Any]:
+    """
+    실전 예측 채점 테이블(prediction_logs)의 누적 성적표 요약 통계를 반환합니다.
+    - stock_code 지정 시 해당 종목만의 누적 성적 집계
+    - total_count: 검증 완료 건수
+    - hit_count: 방향 적중 건수
+    - hit_rate: 실전 누적 적중률 (%)
+    - avg_error_rate: 평균 주가 오차율 (%)
+    - pending_count: 현재 진행 중(대기)인 예측 건수
+    """
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        
+        if stock_code:
+            code_clean = str(stock_code).zfill(6)
+            q_eval = """
+                SELECT 
+                    COUNT(*) as total_count,
+                    COALESCE(SUM(CASE WHEN is_hit = 1 THEN 1 ELSE 0 END), 0) as hit_count,
+                    COALESCE(AVG(error_rate), 0.0) as avg_error_rate
+                FROM prediction_logs
+                WHERE status = 'EVALUATED' AND stock_code = ?
+            """
+            q_pend = "SELECT COUNT(*) FROM prediction_logs WHERE status = 'PENDING' AND stock_code = ?"
+            params = (code_clean,)
+        else:
+            q_eval = """
+                SELECT 
+                    COUNT(*) as total_count,
+                    COALESCE(SUM(CASE WHEN is_hit = 1 THEN 1 ELSE 0 END), 0) as hit_count,
+                    COALESCE(AVG(error_rate), 0.0) as avg_error_rate
+                FROM prediction_logs
+                WHERE status = 'EVALUATED'
+            """
+            q_pend = "SELECT COUNT(*) FROM prediction_logs WHERE status = 'PENDING'"
+            params = ()
+
+        if not is_sqlite:
+            q_eval = q_eval.replace("?", "%s")
+            q_pend = q_pend.replace("?", "%s")
+
+        cursor.execute(q_eval, params)
+        row = cursor.fetchone()
+        if is_sqlite:
+            total = row["total_count"]
+            hits = row["hit_count"]
+            avg_err = row["avg_error_rate"]
+        else:
+            total, hits, avg_err = row
+
+        hit_rate = round((hits / total) * 100, 1) if total > 0 else 0.0
+        avg_err = round(float(avg_err), 2)
+
+        cursor.execute(q_pend, params)
+        p_row = cursor.fetchone()
+        pending = p_row[0] if not is_sqlite else p_row[0]
+
+        return {
+            "total_count": int(total),
+            "hit_count": int(hits),
+            "hit_rate": hit_rate,
+            "avg_error_rate": avg_err,
+            "pending_count": int(pending)
+        }
+    finally:
+        conn.close()
+
+def get_recent_evaluations(limit: int = 30, stock_code: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    최근 채점 완료 및 진행 중인 예측 내역 리스트를 반환합니다.
+    """
+    init_db()
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        
+        if stock_code:
+            code_clean = str(stock_code).zfill(6)
+            q = """
+                SELECT id, stock_code, predicted_at, target_date, period_type,
+                       base_price, predicted_price, actual_price, is_hit, error_rate, status, created_at
+                FROM prediction_logs
+                WHERE stock_code = ?
+                ORDER BY CASE WHEN status = 'EVALUATED' THEN 0 ELSE 1 END, target_date DESC, id DESC
+                LIMIT ?
+            """
+            params = (code_clean, limit)
+        else:
+            q = """
+                SELECT id, stock_code, predicted_at, target_date, period_type,
+                       base_price, predicted_price, actual_price, is_hit, error_rate, status, created_at
+                FROM prediction_logs
+                ORDER BY CASE WHEN status = 'EVALUATED' THEN 0 ELSE 1 END, target_date DESC, id DESC
+                LIMIT ?
+            """
+            params = (limit,)
+
+        if not is_sqlite:
+            q = q.replace("?", "%s")
+        cursor.execute(q, params)
+        rows = cursor.fetchall()
+
+        results = []
+        for r in rows:
+            if is_sqlite:
+                item = dict(r)
+            else:
+                item = {
+                    "id": r[0], "stock_code": r[1], "predicted_at": r[2], "target_date": r[3],
+                    "period_type": r[4], "base_price": r[5], "predicted_price": r[6],
+                    "actual_price": r[7], "is_hit": bool(r[8]) if r[8] is not None else None,
+                    "error_rate": r[9], "status": r[10], "created_at": r[11]
+                }
+            
+            c = item["stock_code"]
+            item["stock_name"] = STOCK_INFO.get(c, c)
+            item["is_hit"] = bool(item["is_hit"]) if item["is_hit"] is not None else None
+            item["error_rate"] = round(float(item["error_rate"]), 2) if item["error_rate"] is not None else None
+            
+            bp = item["base_price"]
+            pp = item["predicted_price"]
+            ap = item["actual_price"]
+            item["pred_change_pct"] = round((pp - bp) / (bp + 1e-9) * 100, 2)
+            item["actual_change_pct"] = round((ap - bp) / (bp + 1e-9) * 100, 2) if ap is not None else None
+
+            if item["status"] == "EVALUATED":
+                if item["is_hit"]:
+                    if item["error_rate"] is not None and item["error_rate"] <= 3.0:
+                        item["verdict_label"] = "🎯 정밀 적중"
+                        item["verdict_color"] = "emerald"
+                    else:
+                        item["verdict_label"] = "✅ 방향 적중"
+                        item["verdict_color"] = "emerald"
+                else:
+                    item["verdict_label"] = "❌ 빗나감"
+                    item["verdict_color"] = "rose"
+            else:
+                item["verdict_label"] = "⏳ 진행중"
+                item["verdict_color"] = "blue"
+
+            results.append(item)
+
+        return results
     finally:
         conn.close()
 

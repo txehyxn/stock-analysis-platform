@@ -34,6 +34,8 @@ from database.db_manager import (
     get_all_latest_rankings,
     calculate_stock_backtest,
     get_prediction_verification,
+    get_evaluation_summary,
+    get_recent_evaluations,
     create_user,
     authenticate_user,
     get_user_by_id,
@@ -46,24 +48,11 @@ from database.db_manager import (
 
 def run_full_pipeline():
     """
-    장 마감 후 주식 데이터 크롤링 및 1D-CNN 예측을 순차 실행하는 전체 파이프라인 함수
+    장 마감 후 주식 데이터 크롤링, 실전 예측 자동 채점 및 1D-CNN 예측 로그 저장을 순차 실행합니다.
     """
-    print("\n" + "=" * 70)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [*] 전체 주식 파이프라인 실행 시작...")
-    print("=" * 70)
     try:
-        from crawler.stock_spider import crawl_and_store_all
-        from ml_model.train_cnn import train_all_stocks
-
-        # 1. 50개 종목 크롤링 및 DB 적재
-        crawl_and_store_all(target_days=120)
-
-        # 2. 50개 종목 1D-CNN 배치 학습 및 예측치 DB 적재
-        train_all_stocks(epochs=30)
-
-        print("\n" + "=" * 70)
-        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [v] 전체 주식 파이프라인 자동 갱신 완료!")
-        print("=" * 70 + "\n")
+        from update_daily import run_daily_pipeline
+        run_daily_pipeline()
     except Exception as e:
         print(f"[-] 파이프라인 실행 중 오류 발생: {e}")
 
@@ -391,6 +380,38 @@ async def api_stock_accuracy(stock_code: str):
     if stock_code not in STOCK_INFO:
         raise HTTPException(status_code=404, detail="Stock code not found")
     return get_prediction_verification(stock_code)
+
+@app.get("/api/evaluations")
+async def api_evaluations(limit: int = 50):
+    """
+    [🎯 AI 예측 성적표] 전체 종합 통계 및 최근 채점 내역 리스트 반환
+    """
+    summary = get_evaluation_summary()
+    recent_logs = get_recent_evaluations(limit=limit)
+    return {
+        "summary": summary,
+        "evaluations": recent_logs,
+        "count": len(recent_logs)
+    }
+
+@app.get("/api/stock/{stock_code}/evaluations")
+async def api_stock_evaluations(stock_code: str, limit: int = 20):
+    """
+    특정 종목만의 최근 예측 성적 히스토리 반환
+    """
+    stock_code = stock_code.zfill(6)
+    if stock_code not in STOCK_INFO:
+        raise HTTPException(status_code=404, detail="Stock code not found")
+    
+    summary = get_evaluation_summary(stock_code=stock_code)
+    logs = get_recent_evaluations(limit=limit, stock_code=stock_code)
+
+    return {
+        "stock_code": stock_code,
+        "stock_name": STOCK_INFO.get(stock_code, stock_code),
+        "summary": summary,
+        "evaluations": logs
+    }
 
 @app.get("/api/ranking")
 async def api_stock_ranking():
