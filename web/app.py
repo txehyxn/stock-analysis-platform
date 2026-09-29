@@ -4,6 +4,18 @@ from datetime import datetime, timedelta
 from typing import Optional
 from contextlib import asynccontextmanager
 
+# Windows 콘솔 UTF-8 인코딩 안전 보장
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+if hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -21,6 +33,7 @@ from database.db_manager import (
     get_stock_list, 
     get_all_latest_rankings,
     calculate_stock_backtest,
+    get_prediction_verification,
     create_user,
     authenticate_user,
     get_user_by_id,
@@ -36,7 +49,7 @@ def run_full_pipeline():
     장 마감 후 주식 데이터 크롤링 및 1D-CNN 예측을 순차 실행하는 전체 파이프라인 함수
     """
     print("\n" + "=" * 70)
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 🚀 전체 주식 파이프라인 실행 시작...")
+    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [*] 전체 주식 파이프라인 실행 시작...")
     print("=" * 70)
     try:
         from crawler.stock_spider import crawl_and_store_all
@@ -326,6 +339,9 @@ async def api_stock_detail(stock_code: str, request: Request):
 
     # AI 백테스팅 적중률 및 신뢰도 지표 계산
     backtest = calculate_stock_backtest(stock_code, raw_history)
+    
+    # 과거 실전 예측 적중 여부 검증 데이터
+    verification = get_prediction_verification(stock_code)
 
     prediction_data = None
     if prediction:
@@ -362,8 +378,19 @@ async def api_stock_detail(stock_code: str, request: Request):
         "history": history,
         "prediction": prediction_data,
         "backtest": backtest,
+        "verification": verification,
         "is_favorite": is_fav
     }
+
+@app.get("/api/stock/{stock_code}/accuracy")
+async def api_stock_accuracy(stock_code: str):
+    """
+    특정 종목의 과거 AI 예측치와 이후 실제 종가를 대조한 실전 적중률 및 검증 이력을 반환합니다.
+    """
+    stock_code = stock_code.zfill(6)
+    if stock_code not in STOCK_INFO:
+        raise HTTPException(status_code=404, detail="Stock code not found")
+    return get_prediction_verification(stock_code)
 
 @app.get("/api/ranking")
 async def api_stock_ranking():
@@ -377,10 +404,23 @@ async def api_stock_ranking():
     rankings = get_all_latest_rankings()
     return rankings
 
+@app.api_route("/api/admin/refresh-data", methods=["GET", "POST"])
+async def api_admin_refresh_data(background_tasks: BackgroundTasks):
+    """
+    상단 새로고침 아이콘 연동용 관리자 API:
+    50개 전 종목 최신 시세 크롤링 및 1D-CNN 예측치 갱신 파이프라인을 즉시 백그라운드에서 실행합니다.
+    """
+    background_tasks.add_task(run_full_pipeline)
+    return {
+        "status": "success",
+        "message": "50개 종목의 최신 주가 수집 및 1D-CNN 예측치 갱신 파이프라인이 즉시 시작되었습니다. 완료 후 자동으로 반영됩니다.",
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
 @app.post("/api/pipeline/run")
 async def trigger_pipeline(background_tasks: BackgroundTasks):
     """
-    관리자 수동 갱신용 API: 전체 크롤링 및 1D-CNN 예측 파이프라인을 백그라운드로 즉시 실행합니다.
+    관리자 수동 갱신용 API (기존 호환 유지)
     """
     background_tasks.add_task(run_full_pipeline)
     return {

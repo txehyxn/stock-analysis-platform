@@ -256,6 +256,29 @@
             border-color: #e2e8f0 !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
         }
+        html.light #prediction-accuracy-card {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+        }
+        html.light #prediction-accuracy-card p {
+            color: #334155 !important;
+        }
+        html.light #prediction-accuracy-card table thead {
+            background-color: #f1f5f9 !important;
+            color: #475569 !important;
+        }
+        html.light #prediction-accuracy-card table tbody {
+            color: #1e293b !important;
+        }
+        html.light #prediction-accuracy-card table tbody tr {
+            border-color: #e2e8f0 !important;
+        }
+        html.light #acc-toggle-detail-btn {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+            color: #334155 !important;
+        }
         html.light .bg-emerald-950\/20 {
             background-color: rgba(16, 185, 129, 0.08) !important;
             border-color: rgba(16, 185, 129, 0.25) !important;
@@ -556,6 +579,96 @@
                 <div class="flex items-center gap-1 text-[10px] text-slate-500 self-end sm:self-center flex-shrink-0 whitespace-nowrap">
                     <i class="fa-solid fa-shield-halved text-blue-400"></i>
                     <span>슬라이딩 윈도우 6구간 검증</span>
+                </div>
+            </div>
+
+            <!-- AI Real Prediction Accuracy Card (실전 예측 적중/빗나감 판정 및 검증 카드) -->
+            <div id="prediction-accuracy-card" class="p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 bg-[#141c2e] border-slate-800 shadow-md">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-start sm:items-center gap-3">
+                        <div id="acc-status-icon-wrap" class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                            <i id="acc-status-icon" class="fa-solid fa-crosshairs"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-bold text-slate-300">실전 예측 적중 검증</span>
+                                <span id="acc-verdict-badge" class="font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                    분석 중...
+                                </span>
+                            </div>
+                            <p id="acc-summary-text" class="text-xs text-slate-300 mt-1 font-sans">
+                                직전 예측치와 이후 거래일의 실제 주가를 대조하여 적중 여부를 실시간 검증합니다.
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        id="acc-toggle-detail-btn"
+                        onclick="toggleAccuracyDetail()"
+                        class="self-end sm:self-center px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                        <i class="fa-solid fa-list-check text-blue-400"></i>
+                        <span>검증 내역 상세</span>
+                        <i id="acc-toggle-arrow" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
+                    </button>
+                </div>
+
+                <!-- 검증 상세 내역 펼침 영역 (기본 hidden) -->
+                <div id="accuracy-detail-panel" class="hidden mt-4 pt-3.5 border-t border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left text-blue-400"></i>
+                            <span>과거 AI 예측 vs 실제 주가 적중 내역</span>
+                        </span>
+                        <span class="text-[11px] text-slate-400 font-mono">단위: 원, %</span>
+                    </div>
+
+                    <!-- 실전 예측 검증 테이블 (반응형 가로 스크롤) -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+                        <table class="w-full text-left text-xs font-mono">
+                            <thead class="bg-slate-800/60 text-slate-400 font-sans">
+                                <tr>
+                                    <th class="py-2 px-3 whitespace-nowrap">예측 기준일</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">당시 종가</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">1D 목표가</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">실제 종가</th>
+                                    <th class="py-2 px-3 text-center whitespace-nowrap">오차율</th>
+                                    <th class="py-2 px-3 text-center whitespace-nowrap">적중 결과</th>
+                                    <th class="py-2 px-3 whitespace-nowrap">1W 목표가 (진행)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accuracy-table-body" class="divide-y divide-slate-800/60 text-slate-200">
+                                <tr><td colspan="7" class="py-4 text-center text-slate-500 font-sans">검증 데이터를 불러오는 중...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 백테스팅 6구간 상세 뷰 -->
+                    <div class="mt-3 pt-3 border-t border-slate-800/60">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                                <i class="fa-solid fa-chart-pie text-emerald-400"></i>
+                                <span>시계열 백테스팅 6구간 방향성(상승/하락) 검증표</span>
+                            </span>
+                            <span id="backtest-summary-badge" class="text-[11px] text-emerald-400 font-mono font-bold"></span>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-slate-800/80">
+                            <table class="w-full text-left text-xs font-mono">
+                                <thead class="bg-slate-800/60 text-slate-400 font-sans">
+                                    <tr>
+                                        <th class="py-2 px-3 whitespace-nowrap">기준 시점</th>
+                                        <th class="py-2 px-3 whitespace-nowrap">검증 시점</th>
+                                        <th class="py-2 px-3 whitespace-nowrap">기준가</th>
+                                        <th class="py-2 px-3 whitespace-nowrap">실제가</th>
+                                        <th class="py-2 px-3 whitespace-nowrap">AI 예측</th>
+                                        <th class="py-2 px-3 text-center whitespace-nowrap">방향 일치</th>
+                                        <th class="py-2 px-3 text-center whitespace-nowrap">오차</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="backtest-table-body" class="divide-y divide-slate-800/60 text-slate-200">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1843,6 +1956,11 @@
             // AI 백테스팅 검증 적중률 배너 렌더링
             renderBacktestBanner(data.backtest);
 
+            // AI 실전 예측 적중/빗나감 검증 렌더링
+            if (typeof renderPredictionAccuracy === 'function') {
+                renderPredictionAccuracy(data.verification, data.backtest);
+            }
+
             // 카드 1: 기준가
             document.getElementById("card-base-price").innerText = formatKRW(data.current_price);
             document.getElementById("card-base-date").innerText = data.base_date || "-";
@@ -1913,6 +2031,152 @@
 
             stats.innerText = `최근 ${bt.total_tests}회 중 ${bt.hit_count}회 방향 적중 · 평균 오차율 ±${bt.mape}%`;
             desc.innerText = bt.desc;
+        }
+
+        // 실전 예측 검증 상세 패널 열기/닫기 토글
+        function toggleAccuracyDetail() {
+            const panel = document.getElementById("accuracy-detail-panel");
+            const arrow = document.getElementById("acc-toggle-arrow");
+            if (!panel) return;
+            const isHidden = panel.classList.contains("hidden");
+            if (isHidden) {
+                panel.classList.remove("hidden");
+                if (arrow) arrow.style.transform = "rotate(180deg)";
+            } else {
+                panel.classList.add("hidden");
+                if (arrow) arrow.style.transform = "rotate(0deg)";
+            }
+        }
+
+        // 실전 예측 적중/빗나감 판정 및 검증 결과 렌더링
+        function renderPredictionAccuracy(verification, backtest) {
+            const badge = document.getElementById("acc-verdict-badge");
+            const summaryText = document.getElementById("acc-summary-text");
+            const iconWrap = document.getElementById("acc-status-icon-wrap");
+            const icon = document.getElementById("acc-status-icon");
+            const tableBody = document.getElementById("accuracy-table-body");
+            const btTableBody = document.getElementById("backtest-table-body");
+            const btSummaryBadge = document.getElementById("backtest-summary-badge");
+
+            if (!verification || !badge) return;
+
+            const lv = verification.latest_verified;
+            if (lv && lv.v_1d) {
+                const v = lv.v_1d;
+                const isHit = v.is_hit;
+                const errPct = v.error_pct;
+                const baseDate = lv.base_date;
+                const targetDate = v.target_date;
+                const predPrice = formatKRW(v.pred_price);
+                const actualPrice = formatKRW(v.actual_price);
+                const basePrice = formatKRW(lv.base_price);
+                const dirSign = v.actual_dir === "UP" ? "상승 ↗" : "하락 ↘";
+                const predDirSign = v.pred_dir === "UP" ? "상승 ↗" : "하락 ↘";
+
+                if (isHit && errPct <= 3.0) {
+                    badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                    badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i> 🎯 정밀 적중 (오차 ±${errPct}%)`;
+                    iconWrap.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                    icon.className = "fa-solid fa-bullseye text-emerald-400";
+                } else if (isHit) {
+                    badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-blue-500/20 text-blue-300 border border-blue-500/40";
+                    badge.innerHTML = `<i class="fa-solid fa-check text-blue-400 text-xs"></i> ✅ 방향 적중 (${dirSign} 일치)`;
+                    iconWrap.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-blue-500/20 text-blue-300 border border-blue-500/40";
+                    icon.className = "fa-solid fa-arrow-trend-up text-blue-400";
+                } else {
+                    badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40";
+                    badge.innerHTML = `<i class="fa-solid fa-xmark text-rose-400 text-xs"></i> ❌ 빗나감 (예측: ${predDirSign}, 실제: ${dirSign})`;
+                    iconWrap.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-rose-500/20 text-rose-300 border border-rose-500/40";
+                    icon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+                }
+
+                summaryText.innerHTML = `
+                    <span class="font-bold text-white">[직전 ${baseDate} 예측]</span> 당시 종가 <span class="font-bold text-slate-200">${basePrice}</span> 대비 
+                    익일(${targetDate}) 실제 <span class="font-bold text-white">${actualPrice}</span> 마감 
+                    (예측가: ${predPrice} / 오차율 <span class="font-bold ${isHit ? 'text-emerald-400' : 'text-rose-400'}">±${errPct}%</span>)
+                `;
+            } else {
+                badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30";
+                badge.innerHTML = `⏳ 검증 대기중 (거래일 도래 예정)`;
+                summaryText.innerText = "최신 9월 29일 기준 AI 예측치가 DB에 반영되었으며 다음 거래일 장 마감 후 자동 검증됩니다.";
+            }
+
+            // 실전 예측 히스토리 테이블 렌더링
+            if (tableBody && verification.history && verification.history.length > 0) {
+                let html = "";
+                verification.history.forEach(item => {
+                    const bDate = item.base_date;
+                    const bPrice = formatKRW(item.base_price);
+                    
+                    let pred1dTxt = "-";
+                    let actual1dTxt = "-";
+                    let err1dTxt = "-";
+                    let status1dHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-sans">대기중</span>`;
+                    
+                    if (item.v_1d) {
+                        const v = item.v_1d;
+                        pred1dTxt = formatKRW(v.pred_price);
+                        actual1dTxt = formatKRW(v.actual_price);
+                        err1dTxt = `±${v.error_pct}%`;
+                        const isHit = v.is_hit;
+                        const bgCls = isHit ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                        status1dHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${bgCls} font-sans">${v.status_label}</span>`;
+                    }
+
+                    let pred1wTxt = "-";
+                    if (item.v_1w) {
+                        const w = item.v_1w;
+                        if (w.actual_price) {
+                            pred1wTxt = `${formatKRW(w.pred_price)} → 실제 ${formatKRW(w.actual_price)} (${w.status_label})`;
+                        } else {
+                            pred1wTxt = `${formatKRW(w.pred_price)} (${w.status_label})`;
+                        }
+                    }
+
+                    html += `
+                        <tr class="hover:bg-slate-800/40 transition-colors">
+                            <td class="py-2.5 px-3 font-semibold text-slate-300">${bDate}</td>
+                            <td class="py-2.5 px-3">${bPrice}</td>
+                            <td class="py-2.5 px-3 text-blue-400 font-bold">${pred1dTxt}</td>
+                            <td class="py-2.5 px-3 text-white font-bold">${actual1dTxt}</td>
+                            <td class="py-2.5 px-3 text-center ${item.v_1d && item.v_1d.is_hit ? 'text-emerald-400' : 'text-rose-400'}">${err1dTxt}</td>
+                            <td class="py-2.5 px-3 text-center">${status1dHtml}</td>
+                            <td class="py-2.5 px-3 text-slate-400 text-[11px]">${pred1wTxt}</td>
+                        </tr>
+                    `;
+                });
+                tableBody.innerHTML = html;
+            }
+
+            // 백테스팅 6구간 검증표 렌더링
+            if (btTableBody && backtest && backtest.tests && backtest.tests.length > 0) {
+                if (btSummaryBadge) {
+                    btSummaryBadge.innerText = `총 6회 검증 중 ${backtest.hit_count}회 적중 (적중률 ${backtest.hit_ratio}%)`;
+                }
+                let btHtml = "";
+                backtest.tests.forEach((t) => {
+                    const isHit = t.is_hit;
+                    const badgeCls = isHit ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30";
+                    const hitLabel = isHit ? "🎯 적중" : "❌ 불일치";
+                    const dirArrow = t.pred_dir === "UP" ? "상승 ↗" : "하락 ↘";
+                    const actualArrow = t.actual_dir === "UP" ? "상승 ↗" : "하락 ↘";
+
+                    btHtml += `
+                        <tr class="hover:bg-slate-800/40 transition-colors">
+                            <td class="py-2.5 px-3 text-slate-300">${t.base_date}</td>
+                            <td class="py-2.5 px-3 text-slate-300">${t.target_date}</td>
+                            <td class="py-2.5 px-3">${formatKRW(t.base_price)}</td>
+                            <td class="py-2.5 px-3 font-bold text-white">${formatKRW(t.actual_price)} (${actualArrow})</td>
+                            <td class="py-2.5 px-3 text-blue-400 font-bold">${formatKRW(t.pred_price)} (${dirArrow})</td>
+                            <td class="py-2.5 px-3 text-center">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeCls} font-sans">${hitLabel}</span>
+                            </td>
+                            <td class="py-2.5 px-3 text-center text-slate-400 font-mono">±${t.error_pct}%</td>
+                        </tr>
+                    `;
+                });
+                btTableBody.innerHTML = btHtml;
+            }
         }
 
         function formatChangeBadge(elementId, pct) {
@@ -2306,22 +2570,33 @@
         }
 
         async function triggerManualPipeline() {
-            if (!confirm("50개 종목의 최신 시세 수집 및 1D-CNN 예측 파이프라인을 지금 백그라운드에서 실행하시겠습니까?")) {
+            if (!confirm("50개 종목의 최신 시세를 지금 즉시 수집하고 AI 예측치를 갱신하시겠습니까?")) {
                 return;
             }
+            const icon = document.getElementById("refresh-icon");
+            if (icon) icon.classList.add("fa-spin", "text-blue-400");
+            
             try {
                 showLoadingState(true);
-                const resp = await fetch("/api/pipeline/run", { method: "POST" });
+                const resp = await fetch("/api/admin/refresh-data", { 
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" }
+                });
                 const res = await resp.json();
-                alert(res.message || "파이프라인이 시작되었습니다. 잠시 후 새로고침해주세요.");
+                alert(res.message || "최신 시세 수집 및 AI 예측 갱신이 시작되었습니다!");
+                
+                // 3초 후 데이터 리로드
                 setTimeout(() => {
                     refreshData();
                 }, 3000);
             } catch (err) {
                 console.error("수동 갱신 실패:", err);
-                alert("파이프라인 시작 요청에 실패했습니다.");
+                alert("갱신 요청 중 오류가 발생했습니다: " + err.message);
             } finally {
                 showLoadingState(false);
+                setTimeout(() => {
+                    if (icon) icon.classList.remove("fa-spin", "text-blue-400");
+                }, 2000);
             }
         }
 

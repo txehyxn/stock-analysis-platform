@@ -362,6 +362,133 @@ def calculate_stock_backtest(stock_code: str, history: Optional[List[Dict[str, A
         "tests": tests_detail
     }
 
+def get_prediction_verification(stock_code: str) -> Dict[str, Any]:
+    """
+    특정 종목의 실제 stock_prediction 과거 기록과 이후 실제 종가를 대조하여,
+    과거 예측이 맞았는지 틀렸는지 실전 적중 결과를 분석합니다.
+    """
+    init_db()
+    conn = get_connection()
+    stock_code = str(stock_code).zfill(6)
+    try:
+        cursor = conn.cursor()
+        # 과거 예측 목록 (최신 10건)
+        q = """
+            SELECT id, base_date, pred_1d, pred_1w, pred_1m, created_at
+            FROM stock_prediction
+            WHERE stock_code = ?
+            ORDER BY id DESC
+            LIMIT 10
+        """
+        if not isinstance(conn, sqlite3.Connection):
+            q = q.replace("?", "%s")
+        cursor.execute(q, (stock_code,))
+        pred_rows = cursor.fetchall()
+
+        # 전체 일별 시세 맵 (date -> close_price)
+        q_prices = "SELECT date, close_price FROM stock_daily_price WHERE stock_code = ? ORDER BY date ASC"
+        if not isinstance(conn, sqlite3.Connection):
+            q_prices = q_prices.replace("?", "%s")
+        cursor.execute(q_prices, (stock_code,))
+        all_prices = cursor.fetchall()
+        
+        date_list = [r[0] if not isinstance(r, sqlite3.Row) else r["date"] for r in all_prices]
+        price_map = {r[0] if not isinstance(r, sqlite3.Row) else r["date"]: float(r[1] if not isinstance(r, sqlite3.Row) else r["close_price"]) for r in all_prices}
+        
+        verifications = []
+        for p in pred_rows:
+            p_dict = dict(p) if isinstance(p, sqlite3.Row) else {
+                "id": p[0], "base_date": p[1], "pred_1d": p[2], "pred_1w": p[3], "pred_1m": p[4], "created_at": p[5]
+            }
+            b_date = p_dict["base_date"]
+            if b_date not in price_map:
+                continue
+            base_price = price_map[b_date]
+
+            # base_date 이후 거래일들
+            future_dates = [d for d in date_list if d > b_date]
+            
+            # 1D 검증 (1거래일 뒤)
+            v_1d = None
+            if len(future_dates) >= 1:
+                target_date_1d = future_dates[0]
+                actual_price_1d = price_map[target_date_1d]
+                pred_price_1d = float(p_dict["pred_1d"])
+                
+                pred_dir = "UP" if pred_price_1d >= base_price else "DOWN"
+                actual_dir = "UP" if actual_price_1d >= base_price else "DOWN"
+                is_hit = (pred_dir == actual_dir)
+                err_pct = round(abs(pred_price_1d - actual_price_1d) / actual_price_1d * 100, 2)
+                
+                status_label = "🎯 정밀 적중" if (is_hit and err_pct <= 3.0) else ("✅ 방향 적중" if is_hit else "❌ 빗나감")
+                status_color = "emerald" if is_hit else "rose"
+
+                v_1d = {
+                    "target_date": target_date_1d,
+                    "pred_price": int(round(pred_price_1d)),
+                    "actual_price": int(round(actual_price_1d)),
+                    "pred_dir": pred_dir,
+                    "actual_dir": actual_dir,
+                    "is_hit": is_hit,
+                    "error_pct": err_pct,
+                    "status_label": status_label,
+                    "status_color": status_color
+                }
+
+            # 1W 검증 (5거래일 뒤)
+            v_1w = None
+            if len(future_dates) >= 5:
+                target_date_1w = future_dates[4]
+                actual_price_1w = price_map[target_date_1w]
+                pred_price_1w = float(p_dict["pred_1w"])
+                pred_dir_w = "UP" if pred_price_1w >= base_price else "DOWN"
+                actual_dir_w = "UP" if actual_price_1w >= base_price else "DOWN"
+                is_hit_w = (pred_dir_w == actual_dir_w)
+                err_pct_w = round(abs(pred_price_1w - actual_price_1w) / actual_price_1w * 100, 2)
+                v_1w = {
+                    "target_date": target_date_1w,
+                    "pred_price": int(round(pred_price_1w)),
+                    "actual_price": int(round(actual_price_1w)),
+                    "pred_dir": pred_dir_w,
+                    "actual_dir": actual_dir_w,
+                    "is_hit": is_hit_w,
+                    "error_pct": err_pct_w,
+                    "status_label": "🎯 정밀 적중" if (is_hit_w and err_pct_w <= 4.0) else ("✅ 방향 적중" if is_hit_w else "❌ 빗나감"),
+                    "status_color": "emerald" if is_hit_w else "rose"
+                }
+            else:
+                remaining_w = 5 - len(future_dates)
+                v_1w = {
+                    "target_date": f"{remaining_w}영업일 후",
+                    "pred_price": int(round(float(p_dict["pred_1w"]))),
+                    "actual_price": None,
+                    "pred_dir": "UP" if float(p_dict["pred_1w"]) >= base_price else "DOWN",
+                    "actual_dir": None,
+                    "is_hit": None,
+                    "error_pct": None,
+                    "status_label": f"⏳ 진행 중 ({remaining_w}일 남음)",
+                    "status_color": "blue"
+                }
+
+            verifications.append({
+                "id": p_dict["id"],
+                "base_date": b_date,
+                "base_price": int(round(base_price)),
+                "v_1d": v_1d,
+                "v_1w": v_1w,
+                "created_at": str(p_dict.get("created_at", ""))
+            })
+
+        latest_verified = next((v for v in verifications if v["v_1d"] is not None), None)
+
+        return {
+            "stock_code": stock_code,
+            "latest_verified": latest_verified,
+            "history": verifications
+        }
+    finally:
+        conn.close()
+
 def get_all_latest_rankings() -> Dict[str, Any]:
     """
     50개 전 종목의 최신 종가, 1D-CNN 예측치 및 백테스팅 적중률을 분석하여
