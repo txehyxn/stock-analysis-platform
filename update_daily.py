@@ -23,6 +23,7 @@ from database.db_manager import (
     save_prediction_log,
     get_evaluation_summary,
     add_business_days,
+    get_connection,
     STOCK_INFO,
     init_db
 )
@@ -59,10 +60,12 @@ def run_daily_pipeline(today_date: str = None) -> dict:
         current_price = int(round(res["current_price"]))
         pred_1d = int(round(res["pred_1d"]))
         pred_1w = int(round(res["pred_1w"]))
+        pred_1m = int(round(res["pred_1m"]))
 
-        # 목표 영업일 계산 (1D: 1영업일 후, 1W: 5영업일 후)
+        # 목표 영업일 계산 (1D: 1영업일 후, 1W: 5영업일 후, 1M: 20영업일 후)
         target_1d = add_business_days(base_date, 1)
         target_1w = add_business_days(base_date, 5)
+        target_1m = add_business_days(base_date, 20)
 
         # 1D 예측 로그 저장
         save_prediction_log(
@@ -85,25 +88,53 @@ def run_daily_pipeline(today_date: str = None) -> dict:
             predicted_price=pred_1w,
             status="PENDING"
         )
-        new_logs_count += 2
+
+        # 1M 예측 로그 저장
+        save_prediction_log(
+            stock_code=code,
+            predicted_at=base_date,
+            target_date=target_1m,
+            period_type="1M",
+            base_price=current_price,
+            predicted_price=pred_1m,
+            status="PENDING"
+        )
+        new_logs_count += 3
 
     # 최종 채점 통계 확인
     summary = get_evaluation_summary()
 
+    # DB의 실제 최신 일자 확인
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT MAX(date) FROM stock_daily_price")
+        row = cursor.fetchone()
+        latest_date_in_db = row[0] if row else today_date
+        conn.close()
+    except Exception:
+        latest_date_in_db = today_date
+
+    completion_date = latest_date_in_db or today_date
+
     print("\n" + "=" * 70)
     print("  [v] 일일 파이프라인 및 AI 예측 채점 완료 요약:")
+    print(f"      - DB 최신 기준일자: {completion_date}")
     print(f"      - 평가 완료 건수: {summary['total_count']:,}건")
     print(f"      - 실전 누적 적중률: {summary['hit_rate']}% ({summary['hit_count']}/{summary['total_count'] if summary['total_count'] > 0 else 1})")
     print(f"      - 평균 주가 오차율: ±{summary['avg_error_rate']}%")
     print(f"      - 신규 등록 예측로그: {new_logs_count}건 (대기 중: {summary['pending_count']}건)")
-    print("=" * 70 + "\n")
+    print("=" * 70)
+    print(f"Daily Stock & Prediction Update Completed for {completion_date}\n")
 
     return {
         "status": "success",
+        "completion_date": completion_date,
         "evaluated_count": eval_count,
         "new_logs_count": new_logs_count,
         "summary": summary
     }
 
 if __name__ == "__main__":
-    run_daily_pipeline()
+    param_date = sys.argv[1] if len(sys.argv) > 1 else None
+    run_daily_pipeline(param_date)
