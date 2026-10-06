@@ -280,14 +280,14 @@ def calculate_stock_backtest(stock_code: str, history: Optional[List[Dict[str, A
 
     if not history or len(history) < 40:
         return {
-            "hit_ratio": 66.7,
-            "hit_count": 4,
-            "total_tests": 6,
-            "mape": 3.5,
-            "grade": "보통",
-            "grade_code": "normal",
-            "status_color": "blue",
-            "desc": "일반적인 수준의 추세 일치율을 보이고 있습니다.",
+            "hit_ratio": None,
+            "hit_count": 0,
+            "total_tests": 0,
+            "mape": None,
+            "grade": "데이터 집계 중",
+            "grade_code": "pending",
+            "status_color": "slate",
+            "desc": "과거 시세 데이터가 부족하여 분석을 집계 중입니다.",
             "tests": []
         }
 
@@ -345,26 +345,32 @@ def calculate_stock_backtest(stock_code: str, history: Optional[List[Dict[str, A
             "error_pct": round(error_pct, 2)
         })
 
-    actual_count = len(tests_detail) or 6
-    hit_ratio = round((hit_count / actual_count) * 100, 1)
-    mape = round(float(np.mean(errors)) if errors else 3.5, 1)
-
-    # 3단계 신뢰도 등급
-    if hit_ratio >= 70.0:
-        grade = "우수"
-        grade_code = "high"
-        status_color = "emerald"
-        desc = "과거 차트 파동과 딥러닝 패턴 적합도가 매우 높습니다."
-    elif hit_ratio >= 50.0:
-        grade = "보통"
-        grade_code = "normal"
-        status_color = "blue"
-        desc = "일반적인 수준의 추세 일치율을 보이고 있습니다."
+    actual_count = len(tests_detail)
+    if actual_count > 0:
+        hit_ratio = round((hit_count / actual_count) * 100, 1)
+        mape = round(float(np.mean(errors)), 1)
+        if hit_ratio >= 70.0:
+            grade = "신뢰도 우수"
+            grade_code = "high"
+            status_color = "emerald"
+            desc = "과거 차트 파동과 딥러닝 패턴 적합도가 매우 높습니다."
+        elif hit_ratio >= 50.0:
+            grade = "보통"
+            grade_code = "normal"
+            status_color = "blue"
+            desc = "일반적인 수준의 추세 일치율을 보이고 있습니다."
+        else:
+            grade = "변동성 주의"
+            grade_code = "caution"
+            status_color = "amber"
+            desc = "최근 잦은 급등락 및 비정형 파동으로 AI 차트 신뢰도가 낮습니다. 보수적 접근을 권장합니다."
     else:
-        grade = "주의"
-        grade_code = "caution"
-        status_color = "amber"
-        desc = "최근 잦은 급등락 및 비정형 파동으로 AI 차트 신뢰도가 낮습니다. 보수적 접근을 권장합니다."
+        hit_ratio = None
+        mape = None
+        grade = "데이터 집계 중"
+        grade_code = "pending"
+        status_color = "slate"
+        desc = "과거 시세 데이터가 부족하여 분석을 집계 중입니다."
 
     return {
         "hit_ratio": hit_ratio,
@@ -376,6 +382,97 @@ def calculate_stock_backtest(stock_code: str, history: Optional[List[Dict[str, A
         "status_color": status_color,
         "desc": desc,
         "tests": tests_detail
+    }
+
+def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """
+    특정 종목의 실전 채점 로그(prediction_logs) 및 시계열 채점 결과를 100% 실제 데이터 기반으로 집계합니다.
+    데이터가 없는 경우 가짜 값을 채우지 않고 null 또는 '데이터 집계 중'으로 처리합니다.
+    """
+    stock_code_clean = str(stock_code).zfill(6)
+    summary = get_evaluation_summary(stock_code_clean)
+    recent_evals = get_recent_evaluations(limit=20, stock_code=stock_code_clean)
+
+    total_eval_count = summary.get("total_count", 0)
+    hit_count = summary.get("hit_count", 0)
+    pending_count = summary.get("pending_count", 0)
+
+    if total_eval_count > 0:
+        hit_rate = summary.get("hit_rate", 0.0)
+        avg_error_rate = summary.get("avg_error_rate", 0.0)
+
+        if hit_rate >= 70.0:
+            grade = "신뢰도 우수"
+            grade_code = "high"
+            status_color = "emerald"
+        elif hit_rate >= 50.0:
+            grade = "보통"
+            grade_code = "normal"
+            status_color = "blue"
+        else:
+            grade = "변동성 주의"
+            grade_code = "caution"
+            status_color = "amber"
+
+        return {
+            "hit_rate": hit_rate,
+            "avg_error_rate": avg_error_rate,
+            "total_eval_count": total_eval_count,
+            "hit_count": hit_count,
+            "pending_count": pending_count,
+            "grade": grade,
+            "grade_code": grade_code,
+            "status_color": status_color,
+            "recent_evals": recent_evals
+        }
+
+    # 만약 prediction_logs에 아직 채점 완료 건수가 없는 경우, 과거 실제 시세 백테스팅 결과 활용
+    bt = calculate_stock_backtest(stock_code_clean, history)
+    if bt.get("total_tests", 0) > 0 and bt.get("hit_ratio") is not None:
+        hr = bt.get("hit_ratio")
+        bt_evals = []
+        for t in bt.get("tests", []):
+            bt_evals.append({
+                "id": None,
+                "stock_code": stock_code_clean,
+                "predicted_at": t.get("base_date"),
+                "target_date": t.get("target_date"),
+                "period_type": "1W",
+                "base_price": t.get("base_price"),
+                "predicted_price": t.get("pred_price"),
+                "actual_price": t.get("actual_price"),
+                "is_hit": t.get("is_hit"),
+                "error_rate": t.get("error_pct"),
+                "status": "EVALUATED",
+                "verdict_label": "🎯 적중" if t.get("is_hit") else "❌ 불일치",
+                "verdict_color": "emerald" if t.get("is_hit") else "rose",
+                "pred_change_pct": round((t.get("pred_price", 0) - t.get("base_price", 1)) / (t.get("base_price", 1) + 1e-9) * 100, 2),
+                "actual_change_pct": round((t.get("actual_price", 0) - t.get("base_price", 1)) / (t.get("base_price", 1) + 1e-9) * 100, 2)
+            })
+
+        return {
+            "hit_rate": hr,
+            "avg_error_rate": bt.get("mape"),
+            "total_eval_count": bt.get("total_tests", 0),
+            "hit_count": bt.get("hit_count", 0),
+            "pending_count": pending_count,
+            "grade": bt.get("grade", "보통"),
+            "grade_code": bt.get("grade_code", "normal"),
+            "status_color": bt.get("status_color", "blue"),
+            "recent_evals": bt_evals
+        }
+
+    # 데이터가 아예 없는 경우 가짜 값을 채우지 않고 null 처리
+    return {
+        "hit_rate": None,
+        "avg_error_rate": None,
+        "total_eval_count": 0,
+        "hit_count": 0,
+        "pending_count": pending_count,
+        "grade": "데이터 집계 중",
+        "grade_code": "pending",
+        "status_color": "slate",
+        "recent_evals": []
     }
 
 def get_prediction_verification(stock_code: str) -> Dict[str, Any]:
@@ -807,6 +904,62 @@ def get_recent_evaluations(limit: int = 30, stock_code: Optional[str] = None) ->
             results.append(item)
 
         return results
+    finally:
+        conn.close()
+
+def get_past_predictions_map(stock_code: str) -> Dict[str, Dict[str, Any]]:
+    """
+    특정 종목의 목표 도래일(target_date) 기준 예측 기록들을 조회하여,
+    날짜를 키(Key)로 하는 매핑 객체를 반환합니다.
+    (차트의 과거 날짜 호버 시 당시 AI 예측가와 실제 종가 비교용)
+    """
+    init_db()
+    conn = get_connection()
+    stock_code = str(stock_code).zfill(6)
+    try:
+        cursor = conn.cursor()
+        is_sqlite = isinstance(conn, sqlite3.Connection)
+        
+        q = """
+            SELECT target_date, predicted_at, period_type, predicted_price, actual_price, is_hit, error_rate, status
+            FROM prediction_logs
+            WHERE stock_code = ?
+            ORDER BY target_date ASC, CASE WHEN status = 'EVALUATED' THEN 0 ELSE 1 END, predicted_at DESC, id DESC
+        """
+        if not is_sqlite:
+            q = q.replace("?", "%s")
+        cursor.execute(q, (stock_code,))
+        rows = cursor.fetchall()
+        
+        past_map = {}
+        for r in rows:
+            if is_sqlite:
+                target_dt = str(r["target_date"])[:10]
+                pred_at = str(r["predicted_at"])[:10]
+                period = str(r["period_type"])
+                pred_p = int(round(float(r["predicted_price"]))) if r["predicted_price"] is not None else None
+                act_p = int(round(float(r["actual_price"]))) if r["actual_price"] is not None else None
+                is_hit = bool(r["is_hit"]) if r["is_hit"] is not None else None
+                err_rate = round(float(r["error_rate"]), 2) if r["error_rate"] is not None else None
+            else:
+                target_dt = str(r[0])[:10]
+                pred_at = str(r[1])[:10]
+                period = str(r[2])
+                pred_p = int(round(float(r[3]))) if r[3] is not None else None
+                act_p = int(round(float(r[4]))) if r[4] is not None else None
+                is_hit = bool(r[5]) if r[5] is not None else None
+                err_rate = round(float(r[6]), 2) if r[6] is not None else None
+
+            # target_date별로 가장 우선순위가 높은 1건 유지
+            if target_dt not in past_map:
+                past_map[target_dt] = {
+                    "predicted_price": pred_p,
+                    "predicted_at": pred_at,
+                    "period_type": period,
+                    "error_rate": err_rate,
+                    "is_hit": is_hit
+                }
+        return past_map
     finally:
         conn.close()
 

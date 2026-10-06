@@ -34,8 +34,10 @@ from database.db_manager import (
     get_all_latest_rankings,
     calculate_stock_backtest,
     get_prediction_verification,
+    get_stock_verification_data,
     get_evaluation_summary,
     get_recent_evaluations,
+    get_past_predictions_map,
     create_user,
     authenticate_user,
     get_user_by_id,
@@ -309,6 +311,7 @@ async def api_stock_detail(stock_code: str, request: Request):
             "stock_name": STOCK_INFO.get(stock_code, stock_code),
             "history": [],
             "prediction": None,
+            "past_predictions": {},
             "is_favorite": is_fav,
             "message": "데이터가 아직 수집되지 않았습니다. 크롤러를 실행해주세요."
         }
@@ -326,14 +329,92 @@ async def api_stock_detail(stock_code: str, request: Request):
     current_price = history[-1]["close_price"]
     base_date = history[-1]["date"]
 
-    # AI 백테스팅 적중률 및 신뢰도 지표 계산
+    # 100% 실제 DB 기반 실전 채점 및 검증 데이터 집계
+    verification = get_stock_verification_data(stock_code, raw_history)
     backtest = calculate_stock_backtest(stock_code, raw_history)
-    
-    # 과거 실전 예측 적중 여부 검증 데이터
-    verification = get_prediction_verification(stock_code)
+
+    # predict/*.csv 시계열 데이터 연동 (RandomForest 126영업일 실제 예측치)
+    forecast_series = []
+    clean_code = str(stock_code).replace(".KS", "").zfill(6)
+    stock_name = STOCK_INFO.get(clean_code, clean_code)
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    predict_folder = os.path.join(root_dir, "predict")
+
+    csv_candidates = [
+        os.path.join(predict_folder, f"{clean_code}_predicted_stock_data.csv"),
+        os.path.join(predict_folder, f"{clean_code}.KS_predicted_stock_data.csv"),
+        os.path.join(predict_folder, f"{stock_name}_predicted_stock_data.csv"),
+    ]
+
+    csv_path = None
+    for cand in csv_candidates:
+        if os.path.exists(cand):
+            csv_path = cand
+            break
+
+    if not csv_path:
+        # 파일이 없으면 RandomForest 즉시 실행하여 생성
+        try:
+            from predict import predict_stock
+            res = predict_stock(clean_code, save_csv=True)
+            if res and os.path.exists(csv_candidates[0]):
+                csv_path = csv_candidates[0]
+        except Exception as e:
+            print(f"Error auto-predicting for {clean_code}: {e}")
+
+    if csv_path and os.path.exists(csv_path):
+        try:
+            import pandas as pd
+            pdf = pd.read_csv(csv_path)
+            if not pdf.empty and "Date" in pdf.columns and "Close" in pdf.columns:
+                for _, r in pdf.iterrows():
+                    forecast_series.append({
+                        "date": str(r["Date"]).strip(),
+                        "close": round(float(r["Close"]), 1)
+                    })
+        except Exception as e:
+            print(f"Error loading prediction csv {csv_path}: {e}")
 
     prediction_data = None
-    if prediction:
+    if forecast_series and len(forecast_series) >= 20:
+        rec_1d = forecast_series[0]
+        rec_1w = forecast_series[4]
+        rec_1m = forecast_series[19]
+
+        pred_1d = int(round(rec_1d["close"]))
+        pred_1w = int(round(rec_1w["close"]))
+        pred_1m = int(round(rec_1m["close"]))
+
+        date_1d = rec_1d["date"]
+        date_1w = rec_1w["date"]
+        date_1m = rec_1m["date"]
+
+        change_1d = round(((pred_1d - current_price) / current_price) * 100, 2)
+        change_1w = round(((pred_1w - current_price) / current_price) * 100, 2)
+        change_1m = round(((pred_1m - current_price) / current_price) * 100, 2)
+
+        pred_base_date = prediction["base_date"] if prediction else base_date
+
+        prediction_data = {
+            "id": prediction["id"] if prediction else None,
+            "base_date": pred_base_date,
+            "base_price": current_price,
+            "pred_1d": pred_1d,
+            "pred_1w": pred_1w,
+            "pred_1m": pred_1m,
+            "change_1d": change_1d,
+            "change_1w": change_1w,
+            "change_1m": change_1m,
+            "change_1d_pct": change_1d,
+            "change_1w_pct": change_1w,
+            "change_1m_pct": change_1m,
+            "date_1d": date_1d,
+            "date_1w": date_1w,
+            "date_1m": date_1m,
+            "forecast_series": forecast_series,
+            "created_at": str(prediction.get("created_at", "")) if prediction else ""
+        }
+    elif prediction:
         pred_1d = int(round(float(prediction["pred_1d"])))
         pred_1w = int(round(float(prediction["pred_1w"])))
         pred_1m = int(round(float(prediction["pred_1m"])))
@@ -343,6 +424,10 @@ async def api_stock_detail(stock_code: str, request: Request):
         date_1w = add_business_days(pred_base_date, 5)
         date_1m = add_business_days(pred_base_date, 20)
 
+        change_1d = round(((pred_1d - current_price) / current_price) * 100, 2)
+        change_1w = round(((pred_1w - current_price) / current_price) * 100, 2)
+        change_1m = round(((pred_1m - current_price) / current_price) * 100, 2)
+
         prediction_data = {
             "id": prediction["id"],
             "base_date": pred_base_date,
@@ -350,14 +435,20 @@ async def api_stock_detail(stock_code: str, request: Request):
             "pred_1d": pred_1d,
             "pred_1w": pred_1w,
             "pred_1m": pred_1m,
-            "change_1d_pct": round(((pred_1d - current_price) / current_price) * 100, 2),
-            "change_1w_pct": round(((pred_1w - current_price) / current_price) * 100, 2),
-            "change_1m_pct": round(((pred_1m - current_price) / current_price) * 100, 2),
+            "change_1d": change_1d,
+            "change_1w": change_1w,
+            "change_1m": change_1m,
+            "change_1d_pct": change_1d,
+            "change_1w_pct": change_1w,
+            "change_1m_pct": change_1m,
             "date_1d": date_1d,
             "date_1w": date_1w,
             "date_1m": date_1m,
+            "forecast_series": [],
             "created_at": str(prediction.get("created_at", ""))
         }
+
+    past_predictions = get_past_predictions_map(stock_code)
 
     return {
         "stock_code": stock_code,
@@ -366,8 +457,9 @@ async def api_stock_detail(stock_code: str, request: Request):
         "base_date": base_date,
         "history": history,
         "prediction": prediction_data,
-        "backtest": backtest,
+        "past_predictions": past_predictions,
         "verification": verification,
+        "backtest": backtest,
         "is_favorite": is_fav
     }
 

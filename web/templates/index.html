@@ -591,155 +591,11 @@
                 </div>
             </div>
 
-            <!-- AI Backtesting Confidence & Risk Defense Banner -->
-            <div id="backtest-banner" class="p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-[#141c2e]/90 backdrop-blur-md border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg">
-                <div class="flex items-start sm:items-center gap-2.5 min-w-0">
-                    <span id="backtest-icon-wrap" class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        <i id="backtest-icon" class="fa-solid fa-bullseye text-emerald-400"></i>
-                    </span>
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span id="backtest-badge" class="font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
-                                🎯 AI 검증 적중률 -% (분석 중)
-                            </span>
-                            <span id="backtest-stats" class="text-[11px] sm:text-xs text-slate-300 font-medium whitespace-nowrap font-mono">
-                                최근 6회 백테스팅 분석 중...
-                            </span>
-                        </div>
-                        <p id="backtest-desc" class="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed">
-                            과거 시계열 파동과 딥러닝 모델의 방향성 일치율을 검증하고 있습니다.
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-1 text-[10px] text-slate-500 self-end sm:self-center flex-shrink-0 whitespace-nowrap">
-                    <i class="fa-solid fa-shield-halved text-blue-400"></i>
-                    <span>슬라이딩 윈도우 6구간 검증</span>
-                </div>
+            <!-- 종목명/현재가 바로 아래 단일 동적 뱃지 영역 -->
+            <div id="stock-accuracy-summary" class="flex items-center gap-3 mt-2 mb-4 flex-wrap">
+                <!-- JS loadStockDetail에서 동적 주입 -->
             </div>
 
-            <!-- 종목별 최근 실전 채점 결과 미니 위젯 -->
-            <div id="stock-eval-mini-widget" class="p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 bg-[#141c2e] border-slate-800 shadow-md">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div class="flex items-start sm:items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                            <i class="fa-solid fa-clipboard-check"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-xs font-bold text-white tracking-tight">이 종목 AI 실전 채점 성적표</span>
-                                <span id="mini-eval-badge" class="px-2 py-0.5 rounded-full text-[11px] font-bold font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                                    채점 집계 중...
-                                </span>
-                            </div>
-                            <p id="mini-eval-summary" class="text-xs text-slate-400 mt-0.5 font-sans">
-                                과거 도래일 실제 종가 대조 채점 내역을 불러오고 있습니다.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 self-end sm:self-center flex-wrap">
-                        <div id="mini-eval-chips" class="flex items-center gap-1.5 flex-wrap">
-                            <!-- JS로 최근 채점 칩 렌더링 -->
-                        </div>
-                        <button 
-                            onclick="viewFullStockEvaluation()" 
-                            class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap">
-                            <i class="fa-solid fa-bullseye text-xs"></i>
-                            <span>성적표 상세</span>
-                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- AI Real Prediction Accuracy Card (실전 예측 적중/빗나감 판정 및 검증 카드) -->
-            <div id="prediction-accuracy-card" class="p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 bg-[#141c2e] border-slate-800 shadow-md">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div class="flex items-start sm:items-center gap-3">
-                        <div id="acc-status-icon-wrap" class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                            <i id="acc-status-icon" class="fa-solid fa-crosshairs"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-xs font-bold text-slate-300">실전 예측 적중 검증</span>
-                                <span id="acc-verdict-badge" class="font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                                    분석 중...
-                                </span>
-                            </div>
-                            <p id="acc-summary-text" class="text-xs text-slate-300 mt-1 font-sans">
-                                직전 예측치와 이후 거래일의 실제 주가를 대조하여 적중 여부를 실시간 검증합니다.
-                            </p>
-                        </div>
-                    </div>
-                    <button 
-                        id="acc-toggle-detail-btn"
-                        onclick="toggleAccuracyDetail()"
-                        class="self-end sm:self-center px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700 transition-all flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
-                        <i class="fa-solid fa-list-check text-blue-400"></i>
-                        <span>검증 내역 상세</span>
-                        <i id="acc-toggle-arrow" class="fa-solid fa-chevron-down text-[10px] transition-transform"></i>
-                    </button>
-                </div>
-
-                <!-- 검증 상세 내역 펼침 영역 (기본 hidden) -->
-                <div id="accuracy-detail-panel" class="hidden mt-4 pt-3.5 border-t border-slate-800 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                            <i class="fa-solid fa-clock-rotate-left text-blue-400"></i>
-                            <span>과거 AI 예측 vs 실제 주가 적중 내역</span>
-                        </span>
-                        <span class="text-[11px] text-slate-400 font-mono">단위: 원, %</span>
-                    </div>
-
-                    <!-- 실전 예측 검증 테이블 (반응형 가로 스크롤) -->
-                    <div class="overflow-x-auto rounded-xl border border-slate-800/80">
-                        <table class="w-full text-left text-xs font-mono">
-                            <thead class="bg-slate-800/60 text-slate-400 font-sans">
-                                <tr>
-                                    <th class="py-2 px-3 whitespace-nowrap">예측 기준일</th>
-                                    <th class="py-2 px-3 whitespace-nowrap">당시 종가</th>
-                                    <th class="py-2 px-3 whitespace-nowrap">1D 목표가</th>
-                                    <th class="py-2 px-3 whitespace-nowrap">실제 종가</th>
-                                    <th class="py-2 px-3 text-center whitespace-nowrap">오차율</th>
-                                    <th class="py-2 px-3 text-center whitespace-nowrap">적중 결과</th>
-                                    <th class="py-2 px-3 whitespace-nowrap">1W 목표가 (진행)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="accuracy-table-body" class="divide-y divide-slate-800/60 text-slate-200">
-                                <tr><td colspan="7" class="py-4 text-center text-slate-500 font-sans">검증 데이터를 불러오는 중...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- 백테스팅 6구간 상세 뷰 -->
-                    <div class="mt-3 pt-3 border-t border-slate-800/60">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                                <i class="fa-solid fa-chart-pie text-emerald-400"></i>
-                                <span>시계열 백테스팅 6구간 방향성(상승/하락) 검증표</span>
-                            </span>
-                            <span id="backtest-summary-badge" class="text-[11px] text-emerald-400 font-mono font-bold"></span>
-                        </div>
-                        <div class="overflow-x-auto rounded-xl border border-slate-800/80">
-                            <table class="w-full text-left text-xs font-mono">
-                                <thead class="bg-slate-800/60 text-slate-400 font-sans">
-                                    <tr>
-                                        <th class="py-2 px-3 whitespace-nowrap">기준 시점</th>
-                                        <th class="py-2 px-3 whitespace-nowrap">검증 시점</th>
-                                        <th class="py-2 px-3 whitespace-nowrap">기준가</th>
-                                        <th class="py-2 px-3 whitespace-nowrap">실제가</th>
-                                        <th class="py-2 px-3 whitespace-nowrap">AI 예측</th>
-                                        <th class="py-2 px-3 text-center whitespace-nowrap">방향 일치</th>
-                                        <th class="py-2 px-3 text-center whitespace-nowrap">오차</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="backtest-table-body" class="divide-y divide-slate-800/60 text-slate-200">
-                                    <!-- Dynamic Rows -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- 증권사 스타일 차트 기간 탭 버튼 그룹 (1주일 / 1달 / 3달 / 1년/전체) -->
             <div class="bg-[#141c2e] p-1.5 rounded-2xl border border-slate-800/90 flex items-center justify-between gap-1 max-w-xl">
@@ -1331,6 +1187,64 @@
             </form>
 
         </div>
+    <!-- ========================================== -->
+    <!-- STOCK EVAL MODAL: [종목 실전 채점 내역 팝업 모달] -->
+    <!-- ========================================== -->
+    <div id="stock-eval-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 transition-opacity duration-200">
+        <div class="toss-card bg-[#141c2e] border border-slate-700/80 rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden relative">
+            <!-- Modal Header -->
+            <div class="p-5 sm:p-6 border-b border-slate-800/90 flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                        <h3 id="modal-stock-title" class="text-lg sm:text-xl font-extrabold text-white tracking-tight">종목 AI 실전 채점 내역</h3>
+                    </div>
+                    <p id="modal-stock-subtitle" class="text-xs text-slate-400 mt-1">과거 도래일 실제 종가와 딥러닝 AI 예측치를 대조한 100% 실전 채점 기록입니다.</p>
+                </div>
+                <button 
+                    onclick="closeStockEvalModal()" 
+                    class="w-9 h-9 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            
+            <!-- Summary Stats Bar -->
+            <div id="modal-eval-summary-bar" class="px-5 sm:px-6 py-3 bg-slate-900/70 border-b border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                <!-- JS에서 동적 주입 -->
+            </div>
+            
+            <!-- Table Container (Scrollable) -->
+            <div class="overflow-y-auto p-4 sm:p-6 flex-1 no-scrollbar space-y-3">
+                <div class="overflow-x-auto rounded-2xl border border-slate-800/90">
+                    <table class="w-full text-left text-xs font-mono">
+                        <thead class="bg-slate-800/80 text-slate-400 font-sans">
+                            <tr>
+                                <th class="py-2.5 px-3 whitespace-nowrap">예측 기준일</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">목표일</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">구분</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">기준가</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">AI 예측가</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">실제 종가</th>
+                                <th class="py-2.5 px-3 text-center whitespace-nowrap">오차율</th>
+                                <th class="py-2.5 px-3 text-center whitespace-nowrap">채점 결과</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-eval-table-body" class="divide-y divide-slate-800/60 text-slate-200">
+                            <!-- JS에서 동적 주입 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-800 flex justify-end bg-slate-900/50">
+                <button 
+                    onclick="closeStockEvalModal()" 
+                    class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all">
+                    닫기
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Footer -->
@@ -1826,6 +1740,13 @@
                     if (stockChart.options.scales.y.grid) stockChart.options.scales.y.grid.color = gridColor;
                     if (stockChart.options.scales.y.ticks) stockChart.options.scales.y.ticks.color = tickColor;
                 }
+            }
+            if (stockChart.options && stockChart.options.plugins && stockChart.options.plugins.tooltip) {
+                const tt = stockChart.options.plugins.tooltip;
+                tt.backgroundColor = isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(11, 14, 23, 0.95)';
+                tt.titleColor = isLight ? '#0f172a' : '#f1f5f9';
+                tt.bodyColor = isLight ? '#334155' : '#cbd5e1';
+                tt.borderColor = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.12)';
             }
             stockChart.update('none');
         }
@@ -2456,45 +2377,35 @@
             document.getElementById("current-stock-name").innerText = data.stock_name;
             document.getElementById("current-stock-code").innerText = data.stock_code;
             document.getElementById("current-base-date").innerText = data.base_date || "-";
-            document.getElementById("current-price-val").innerText = formatKRW(data.current_price);
+            document.getElementById("current-price-val").innerText = Number(data.current_price).toLocaleString('ko-KR') + '원';
 
             // 관심 종목(별표 ⭐) 상태 업데이트
             updateFavoriteStarUI(data.is_favorite);
 
-            // AI 백테스팅 검증 적중률 배너 렌더링
-            renderBacktestBanner(data.backtest);
-
-            // AI 실전 예측 적중/빗나감 검증 렌더링
-            if (typeof renderPredictionAccuracy === 'function') {
-                renderPredictionAccuracy(data.verification, data.backtest);
-            }
-
-            // 종목별 최근 실전 채점 결과 미니 위젯 갱신
-            if (typeof loadStockEvaluationMini === 'function') {
-                loadStockEvaluationMini(data.stock_code);
-            }
+            // 종목 AI 채점 요약 단일 토스식 뱃지 렌더링
+            renderStockAccuracySummary(data);
 
             // 카드 1: 기준가
-            document.getElementById("card-base-price").innerText = formatKRW(data.current_price);
+            document.getElementById("card-base-price").innerText = Number(data.current_price).toLocaleString('ko-KR') + '원';
             document.getElementById("card-base-date").innerText = data.base_date || "-";
 
-            // 카드 2, 3, 4: 예측 데이터 (소수점 없는 정수)
+            // 카드 2, 3, 4: 예측 데이터 (API 응답 1D/1W/1M 동적 바인딩)
             const pred = data.prediction;
             if (pred) {
-                document.getElementById("card-pred-1d").innerText = formatKRW(pred.pred_1d);
+                document.getElementById("card-pred-1d").innerText = Number(pred.pred_1d).toLocaleString('ko-KR') + '원';
                 document.getElementById("card-date-1d").innerText = formatShortDate(pred.date_1d);
                 formatChangeBadge("card-change-1d", pred.change_1d_pct);
 
-                document.getElementById("card-pred-1w").innerText = formatKRW(pred.pred_1w);
+                document.getElementById("card-pred-1w").innerText = Number(pred.pred_1w).toLocaleString('ko-KR') + '원';
                 document.getElementById("card-date-1w").innerText = formatShortDate(pred.date_1w);
                 formatChangeBadge("card-change-1w", pred.change_1w_pct);
 
-                document.getElementById("card-pred-1m").innerText = formatKRW(pred.pred_1m);
+                document.getElementById("card-pred-1m").innerText = Number(pred.pred_1m).toLocaleString('ko-KR') + '원';
                 document.getElementById("card-date-1m").innerText = formatShortDate(pred.date_1m);
                 formatChangeBadge("card-change-1m", pred.change_1m_pct);
             } else {
                 ["1d", "1w", "1m"].forEach(key => {
-                    document.getElementById(`card-pred-${key}`).innerText = "학습 중";
+                    document.getElementById(`card-pred-${key}`).innerText = "데이터 집계 중";
                     document.getElementById(`card-date-${key}`).innerText = "-";
                     document.getElementById(`card-change-${key}`).innerText = "-";
                 });
@@ -2509,187 +2420,129 @@
             setPeriodFilter(currentPeriodFilter);
         }
 
-        // AI 백테스팅 적중률 신뢰도 3단계 배너 렌더링
-        function renderBacktestBanner(bt) {
-            if (!bt) return;
-            const banner = document.getElementById("backtest-banner");
-            const iconWrap = document.getElementById("backtest-icon-wrap");
-            const icon = document.getElementById("backtest-icon");
-            const badge = document.getElementById("backtest-badge");
-            const stats = document.getElementById("backtest-stats");
-            const desc = document.getElementById("backtest-desc");
+        // 종목 AI 채점 요약 단일 뱃지 렌더링
+        function renderStockAccuracySummary(data) {
+            const container = document.getElementById("stock-accuracy-summary");
+            if (!container) return;
 
-            if (!banner) return;
-
-            if (bt.grade_code === "high" || bt.hit_ratio >= 70) {
-                banner.className = "p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-emerald-950/20 border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-emerald-950/20";
-                iconWrap.className = "w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-                icon.className = "fa-solid fa-bullseye text-emerald-400";
-                badge.className = "font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono";
-                badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i> 🎯 AI 검증 적중률 ${bt.hit_ratio}% (${bt.grade})`;
-            } else if (bt.grade_code === "normal" || bt.hit_ratio >= 50) {
-                banner.className = "p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-blue-950/20 border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-blue-950/20";
-                iconWrap.className = "w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-blue-500/20 text-blue-300 border border-blue-500/40";
-                icon.className = "fa-solid fa-chart-line text-blue-400";
-                badge.className = "font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-blue-500/20 text-blue-300 border border-blue-500/40 font-mono";
-                badge.innerHTML = `<i class="fa-solid fa-chart-simple text-blue-400 text-xs"></i> 📊 AI 검증 적중률 ${bt.hit_ratio}% (${bt.grade})`;
-            } else {
-                // caution (50% 미만 리스크 경고)
-                banner.className = "p-3 sm:p-4 rounded-2xl border transition-all duration-300 bg-amber-950/25 border-amber-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-lg shadow-amber-950/30";
-                iconWrap.className = "w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-amber-500/25 text-amber-300 border border-amber-500/50";
-                icon.className = "fa-solid fa-triangle-exclamation text-amber-400";
-                badge.className = "font-extrabold text-xs sm:text-sm px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap bg-amber-500/25 text-amber-300 border border-amber-500/50 font-mono animate-pulse";
-                badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-400 text-xs"></i> ⚠️ AI 검증 적중률 ${bt.hit_ratio}% (변동성 주의)`;
+            const v = data.verification || {};
+            let hitRate = v.hit_rate;
+            if (hitRate === null || hitRate === undefined || isNaN(hitRate)) {
+                if (data.backtest && data.backtest.hit_ratio !== null && data.backtest.hit_ratio !== undefined) {
+                    hitRate = data.backtest.hit_ratio;
+                }
             }
 
-            stats.innerText = `최근 ${bt.total_tests}회 중 ${bt.hit_count}회 방향 적중 · 평균 오차율 ±${bt.mape}%`;
-            desc.innerText = bt.desc;
-        }
-
-        // 실전 예측 검증 상세 패널 열기/닫기 토글
-        function toggleAccuracyDetail() {
-            const panel = document.getElementById("accuracy-detail-panel");
-            const arrow = document.getElementById("acc-toggle-arrow");
-            if (!panel) return;
-            const isHidden = panel.classList.contains("hidden");
-            if (isHidden) {
-                panel.classList.remove("hidden");
-                if (arrow) arrow.style.transform = "rotate(180deg)";
-            } else {
-                panel.classList.add("hidden");
-                if (arrow) arrow.style.transform = "rotate(0deg)";
-            }
-        }
-
-        // 실전 예측 적중/빗나감 판정 및 검증 결과 렌더링
-        function renderPredictionAccuracy(verification, backtest) {
-            const badge = document.getElementById("acc-verdict-badge");
-            const summaryText = document.getElementById("acc-summary-text");
-            const iconWrap = document.getElementById("acc-status-icon-wrap");
-            const icon = document.getElementById("acc-status-icon");
-            const tableBody = document.getElementById("accuracy-table-body");
-            const btTableBody = document.getElementById("backtest-table-body");
-            const btSummaryBadge = document.getElementById("backtest-summary-badge");
-
-            if (!verification || !badge) return;
-
-            const lv = verification.latest_verified;
-            if (lv && lv.v_1d) {
-                const v = lv.v_1d;
-                const isHit = v.is_hit;
-                const errPct = v.error_pct;
-                const baseDate = lv.base_date;
-                const targetDate = v.target_date;
-                const predPrice = formatKRW(v.pred_price);
-                const actualPrice = formatKRW(v.actual_price);
-                const basePrice = formatKRW(lv.base_price);
-                const dirSign = v.actual_dir === "UP" ? "상승 ↗" : "하락 ↘";
-                const predDirSign = v.pred_dir === "UP" ? "상승 ↗" : "하락 ↘";
-
-                if (isHit && errPct <= 3.0) {
-                    badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-                    badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i> 🎯 정밀 적중 (오차 ±${errPct}%)`;
-                    iconWrap.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-                    icon.className = "fa-solid fa-bullseye text-emerald-400";
-                } else if (isHit) {
-                    badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-blue-500/20 text-blue-300 border border-blue-500/40";
-                    badge.innerHTML = `<i class="fa-solid fa-check text-blue-400 text-xs"></i> ✅ 방향 적중 (${dirSign} 일치)`;
-                    iconWrap.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-blue-500/20 text-blue-300 border border-blue-500/40";
-                    icon.className = "fa-solid fa-arrow-trend-up text-blue-400";
+            let badgeHtml = "";
+            if (hitRate !== null && hitRate !== undefined && !isNaN(hitRate)) {
+                const hr = Math.round(Number(hitRate));
+                if (hr >= 70) {
+                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm">🎯 AI 적중률 ${hr}% · 신뢰도 우수</span>`;
+                } else if (hr >= 50) {
+                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm">📊 AI 적중률 ${hr}% · 보통</span>`;
                 } else {
-                    badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40";
-                    badge.innerHTML = `<i class="fa-solid fa-xmark text-rose-400 text-xs"></i> ❌ 빗나감 (예측: ${predDirSign}, 실제: ${dirSign})`;
-                    iconWrap.className = "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 bg-rose-500/20 text-rose-300 border border-rose-500/40";
-                    icon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm">⚠️ AI 적중률 ${hr}% · 변동성 주의</span>`;
                 }
-
-                summaryText.innerHTML = `
-                    <span class="font-bold text-white">[직전 ${baseDate} 예측]</span> 당시 종가 <span class="font-bold text-slate-200">${basePrice}</span> 대비 
-                    익일(${targetDate}) 실제 <span class="font-bold text-white">${actualPrice}</span> 마감 
-                    (예측가: ${predPrice} / 오차율 <span class="font-bold ${isHit ? 'text-emerald-400' : 'text-rose-400'}">±${errPct}%</span>)
-                `;
             } else {
-                badge.className = "font-extrabold text-xs px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30";
-                badge.innerHTML = `⏳ 검증 대기중 (거래일 도래 예정)`;
-                summaryText.innerText = "최신 9월 29일 기준 AI 예측치가 DB에 반영되었으며 다음 거래일 장 마감 후 자동 검증됩니다.";
+                badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-slate-800 text-slate-400 border border-slate-700/60 shadow-sm">⏳ AI 적중률 집계 중</span>`;
             }
 
-            // 실전 예측 히스토리 테이블 렌더링
-            if (tableBody && verification.history && verification.history.length > 0) {
-                let html = "";
-                verification.history.forEach(item => {
-                    const bDate = item.base_date;
-                    const bPrice = formatKRW(item.base_price);
-                    
-                    let pred1dTxt = "-";
-                    let actual1dTxt = "-";
-                    let err1dTxt = "-";
-                    let status1dHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-400 font-sans">대기중</span>`;
-                    
-                    if (item.v_1d) {
-                        const v = item.v_1d;
-                        pred1dTxt = formatKRW(v.pred_price);
-                        actual1dTxt = formatKRW(v.actual_price);
-                        err1dTxt = `±${v.error_pct}%`;
-                        const isHit = v.is_hit;
-                        const bgCls = isHit ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30";
-                        status1dHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${bgCls} font-sans">${v.status_label}</span>`;
-                    }
+            container.innerHTML = `
+                ${badgeHtml}
+                <button 
+                    type="button"
+                    onclick="openStockEvalModal()" 
+                    class="text-xs font-semibold text-slate-400 hover:text-blue-400 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60 cursor-pointer">
+                    <span>[실전 채점 내역 &gt;]</span>
+                </button>
+            `;
+        }
 
-                    let pred1wTxt = "-";
-                    if (item.v_1w) {
-                        const w = item.v_1w;
-                        if (w.actual_price) {
-                            pred1wTxt = `${formatKRW(w.pred_price)} → 실제 ${formatKRW(w.actual_price)} (${w.status_label})`;
-                        } else {
-                            pred1wTxt = `${formatKRW(w.pred_price)} (${w.status_label})`;
-                        }
-                    }
+        // 실전 채점 내역 모달 열기
+        function openStockEvalModal() {
+            const modal = document.getElementById("stock-eval-modal");
+            if (!modal) return;
+            
+            const title = document.getElementById("modal-stock-title");
+            if (title && cachedData) {
+                title.innerText = `${cachedData.stock_name} (${cachedData.stock_code}) AI 실전 채점 내역`;
+            }
 
-                    html += `
-                        <tr class="hover:bg-slate-800/40 transition-colors">
-                            <td class="py-2.5 px-3 font-semibold text-slate-300">${bDate}</td>
-                            <td class="py-2.5 px-3">${bPrice}</td>
-                            <td class="py-2.5 px-3 text-blue-400 font-bold">${pred1dTxt}</td>
-                            <td class="py-2.5 px-3 text-white font-bold">${actual1dTxt}</td>
-                            <td class="py-2.5 px-3 text-center ${item.v_1d && item.v_1d.is_hit ? 'text-emerald-400' : 'text-rose-400'}">${err1dTxt}</td>
-                            <td class="py-2.5 px-3 text-center">${status1dHtml}</td>
-                            <td class="py-2.5 px-3 text-slate-400 text-[11px]">${pred1wTxt}</td>
-                        </tr>
+            const summaryBar = document.getElementById("modal-eval-summary-bar");
+            const v = (cachedData && cachedData.verification) ? cachedData.verification : {};
+            if (summaryBar) {
+                if (v.hit_rate !== null && v.hit_rate !== undefined && !isNaN(v.hit_rate)) {
+                    const hr = Number(v.hit_rate).toFixed(1);
+                    const err = (v.avg_error_rate !== null && v.avg_error_rate !== undefined) ? Number(v.avg_error_rate).toFixed(1) : '-';
+                    summaryBar.innerHTML = `
+                        <div class="flex items-center gap-4 text-slate-300">
+                            <span>누적 채점: <strong class="text-white">${v.total_eval_count || 0}</strong>건</span>
+                            <span>적중률: <strong class="${v.hit_rate >= 50 ? 'text-emerald-400' : 'text-amber-400'}">${hr}%</strong></span>
+                            <span>평균 오차율: <strong class="text-blue-400">±${err}%</strong></span>
+                        </div>
                     `;
-                });
-                tableBody.innerHTML = html;
-            }
-
-            // 백테스팅 6구간 검증표 렌더링
-            if (btTableBody && backtest && backtest.tests && backtest.tests.length > 0) {
-                if (btSummaryBadge) {
-                    btSummaryBadge.innerText = `총 6회 검증 중 ${backtest.hit_count}회 적중 (적중률 ${backtest.hit_ratio}%)`;
+                } else {
+                    summaryBar.innerHTML = `<span class="text-slate-400">현재 데이터 집계 중입니다.</span>`;
                 }
-                let btHtml = "";
-                backtest.tests.forEach((t) => {
-                    const isHit = t.is_hit;
-                    const badgeCls = isHit ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border border-rose-500/30";
-                    const hitLabel = isHit ? "🎯 적중" : "❌ 불일치";
-                    const dirArrow = t.pred_dir === "UP" ? "상승 ↗" : "하락 ↘";
-                    const actualArrow = t.actual_dir === "UP" ? "상승 ↗" : "하락 ↘";
+            }
 
-                    btHtml += `
-                        <tr class="hover:bg-slate-800/40 transition-colors">
-                            <td class="py-2.5 px-3 text-slate-300">${t.base_date}</td>
-                            <td class="py-2.5 px-3 text-slate-300">${t.target_date}</td>
-                            <td class="py-2.5 px-3">${formatKRW(t.base_price)}</td>
-                            <td class="py-2.5 px-3 font-bold text-white">${formatKRW(t.actual_price)} (${actualArrow})</td>
-                            <td class="py-2.5 px-3 text-blue-400 font-bold">${formatKRW(t.pred_price)} (${dirArrow})</td>
-                            <td class="py-2.5 px-3 text-center">
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeCls} font-sans">${hitLabel}</span>
+            const tbody = document.getElementById("modal-eval-table-body");
+            if (tbody) {
+                const evals = v.recent_evals || [];
+                if (evals.length > 0) {
+                    let html = "";
+                    evals.forEach(item => {
+                        const bDate = item.predicted_at || item.base_date || "-";
+                        const tDate = item.target_date || "-";
+                        const pType = item.period_type || "1W";
+                        const bPrice = item.base_price ? Number(item.base_price).toLocaleString('ko-KR') + '원' : '-';
+                        const pPrice = item.predicted_price !== undefined ? Number(item.predicted_price).toLocaleString('ko-KR') + '원' : (item.pred_price ? Number(item.pred_price).toLocaleString('ko-KR') + '원' : '-');
+                        const aPrice = item.actual_price ? Number(item.actual_price).toLocaleString('ko-KR') + '원' : '대기중';
+                        const isEvaluated = item.status === 'EVALUATED' || (item.actual_price !== null && item.actual_price !== undefined);
+                        const isHit = item.is_hit === 1 || item.is_hit === true;
+                        const errPct = (item.error_rate !== null && item.error_rate !== undefined) ? `±${Number(item.error_rate).toFixed(1)}%` : '-';
+                        
+                        let badgeHtml = "";
+                        if (isEvaluated) {
+                            const badgeClass = isHit ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border-rose-500/30";
+                            const label = isHit ? "🎯 적중" : "❌ 불일치";
+                            badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border font-sans ${badgeClass}">${label}</span>`;
+                        } else {
+                            badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">⏳ 대기중</span>`;
+                        }
+
+                        html += `
+                            <tr class="hover:bg-slate-800/40 transition-colors">
+                                <td class="py-2.5 px-3 text-slate-300 whitespace-nowrap">${bDate}</td>
+                                <td class="py-2.5 px-3 text-slate-300 whitespace-nowrap">${tDate}</td>
+                                <td class="py-2.5 px-3 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-bold">${pType}</span></td>
+                                <td class="py-2.5 px-3 whitespace-nowrap text-slate-400">${bPrice}</td>
+                                <td class="py-2.5 px-3 whitespace-nowrap text-blue-400 font-bold">${pPrice}</td>
+                                <td class="py-2.5 px-3 whitespace-nowrap font-bold ${isEvaluated ? 'text-white' : 'text-slate-500'}">${aPrice}</td>
+                                <td class="py-2.5 px-3 whitespace-nowrap text-center ${isHit ? 'text-emerald-400' : 'text-rose-400'} font-bold">${errPct}</td>
+                                <td class="py-2.5 px-3 whitespace-nowrap text-center">${badgeHtml}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="py-8 text-center text-slate-400 font-sans">
+                                등록된 실전 채점 기록이 없습니다.
                             </td>
-                            <td class="py-2.5 px-3 text-center text-slate-400 font-mono">±${t.error_pct}%</td>
                         </tr>
                     `;
-                });
-                btTableBody.innerHTML = btHtml;
+                }
             }
+
+            modal.classList.remove("hidden");
+        }
+
+        // 실전 채점 내역 모달 닫기
+        function closeStockEvalModal() {
+            const modal = document.getElementById("stock-eval-modal");
+            if (modal) modal.classList.add("hidden");
         }
 
         function formatChangeBadge(elementId, pct) {
@@ -2768,17 +2621,80 @@
                             borderWidth: 1,
                             padding: 12,
                             boxPadding: 6,
-                            usePointStyle: true,
+                            displayColors: false,
+                            filter: function(tooltipItem) {
+                                const historyLen = (cachedData && cachedData.history) ? cachedData.history.length : 0;
+                                const idx = tooltipItem.dataIndex;
+                                const dsIdx = tooltipItem.datasetIndex;
+
+                                // 과거 날짜 구간: 실제 종가(ds 0)만 채택 (연결점의 중복 예측 포인트 ds 1 제외)
+                                if (idx < historyLen) {
+                                    return dsIdx === 0;
+                                }
+                                // 미래 날짜 구간: AI 예측치(ds 1)만 채택
+                                return dsIdx === 1 && tooltipItem.parsed.y !== null;
+                            },
                             callbacks: {
+                                title: function(tooltipItems) {
+                                    if (!tooltipItems || tooltipItems.length === 0) return '';
+                                    const idx = tooltipItems[0].dataIndex;
+                                    const fullDate = (stockChart && stockChart._fullDates && stockChart._fullDates[idx])
+                                        ? stockChart._fullDates[idx]
+                                        : ((cachedData && cachedData.history && idx < cachedData.history.length)
+                                            ? cachedData.history[idx].date
+                                            : null);
+                                    if (fullDate) {
+                                        return fullDate;
+                                    }
+                                    return tooltipItems[0].label || '';
+                                },
                                 label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
+                                    const historyLen = (cachedData && cachedData.history) ? cachedData.history.length : 0;
+                                    const idx = context.dataIndex;
+                                    const dsIdx = context.datasetIndex;
+
+                                    // 1. 과거 날짜 구간 (실제 종가 + 당시 AI 예측)
+                                    if (idx < historyLen) {
+                                        if (dsIdx !== 0) return null;
+
+                                        const h = (cachedData && cachedData.history) ? cachedData.history[idx] : null;
+                                        const fullDate = (stockChart && stockChart._fullDates && stockChart._fullDates[idx])
+                                            ? stockChart._fullDates[idx]
+                                            : (h ? h.date : null);
+
+                                        const actualPrice = (context.parsed.y !== null && context.parsed.y !== undefined)
+                                            ? Math.round(Number(context.parsed.y))
+                                            : (h ? Math.round(Number(h.close_price)) : 0);
+
+                                        const pastMap = (cachedData && cachedData.past_predictions) ? cachedData.past_predictions : {};
+                                        const past = fullDate ? pastMap[fullDate] : null;
+
+                                        // 과거 예측 기록이 존재하는 경우: 1줄 실제 종가, 2줄 당시 AI 예측
+                                        if (past && past.predicted_price !== null && past.predicted_price !== undefined) {
+                                            const line1 = `🔵 실제 종가: ${actualPrice.toLocaleString('ko-KR')}원`;
+
+                                            const hitPart = past.is_hit ? '🎯 적중' : '❌ 불발';
+                                            const errPart = (past.error_rate !== null && past.error_rate !== undefined)
+                                                ? `, 오차 ±${past.error_rate}%`
+                                                : '';
+                                            const line2 = `🟠 당시 AI 예측: ${Number(past.predicted_price).toLocaleString('ko-KR')}원 (${hitPart}${errPart})`;
+
+                                            return [line1, line2];
+                                        }
+
+                                        // 과거 예측 기록이 없는 날짜: 실제 종가 단독 표시
+                                        return `🔵 실제 종가: ${actualPrice.toLocaleString('ko-KR')}원`;
                                     }
-                                    if (context.parsed.y !== null) {
-                                        label += formatKRW(context.parsed.y);
+
+                                    // 2. 미래 날짜 (점선 구간): AI 예측치 단독 표시
+                                    if (dsIdx === 1) {
+                                        const predPrice = (context.parsed.y !== null && context.parsed.y !== undefined)
+                                            ? Math.round(Number(context.parsed.y))
+                                            : 0;
+                                        return `🟠 AI 예측치: ${predPrice.toLocaleString('ko-KR')}원`;
                                     }
-                                    return label;
+
+                                    return null;
                                 }
                             }
                         }
@@ -2829,39 +2745,58 @@
             }
         }
 
-        // 전체 과거 시세와 예측치를 100% 로드 (데이터 손실 없음)
+        // 전체 과거 시세와 predict/*.csv 실제 126일 미래 예측 시계열 100% 연동
         function loadFullChartData(history, prediction) {
             if (!stockChart || !history || history.length === 0) return;
 
             const labels = history.map(h => formatShortDate(h.date));
+            const fullDates = history.map(h => h.date);
             const actualPrices = history.map(h => Math.round(Number(h.close_price)));
             const predPrices = new Array(actualPrices.length).fill(null);
 
             if (prediction && actualPrices.length > 0) {
+                // 주황색 점선의 시작점: 마지막 실제 종가에 정확히 연결
                 predPrices[predPrices.length - 1] = actualPrices[actualPrices.length - 1];
 
-                const p1d = Math.round(Number(prediction.pred_1d));
-                const p1w = Math.round(Number(prediction.pred_1w));
-                const p1m = Math.round(Number(prediction.pred_1m));
+                const fs = prediction.forecast_series;
+                if (fs && fs.length > 0) {
+                    // predict/*.csv에 저장된 실제 날짜별 126영업일 예측 종가 배열 바인딩
+                    fs.forEach((item, idx) => {
+                        let dateLabel = formatShortDate(item.date);
+                        if (idx === 0) dateLabel += " (1D)";
+                        else if (idx === 4) dateLabel += " (1W)";
+                        else if (idx === 19) dateLabel += " (1M)";
 
-                const d1dLabel = formatShortDate(prediction.date_1d) + "(1D)";
-                const d1wLabel = formatShortDate(prediction.date_1w) + "(1W)";
-                const d1mLabel = formatShortDate(prediction.date_1m) + "(1M)";
+                        labels.push(dateLabel);
+                        fullDates.push(item.date);
+                        predPrices.push(Math.round(Number(item.close)));
+                        actualPrices.push(null);
+                    });
+                } else {
+                    // fallback: 1D, 1W, 1M 3개 포인트
+                    const p1d = Math.round(Number(prediction.pred_1d));
+                    const p1w = Math.round(Number(prediction.pred_1w));
+                    const p1m = Math.round(Number(prediction.pred_1m));
 
-                labels.push(d1dLabel);
-                predPrices.push(p1d);
-                actualPrices.push(null);
+                    labels.push(formatShortDate(prediction.date_1d) + " (1D)");
+                    fullDates.push(prediction.date_1d);
+                    predPrices.push(p1d);
+                    actualPrices.push(null);
 
-                labels.push(d1wLabel);
-                predPrices.push(p1w);
-                actualPrices.push(null);
+                    labels.push(formatShortDate(prediction.date_1w) + " (1W)");
+                    fullDates.push(prediction.date_1w);
+                    predPrices.push(p1w);
+                    actualPrices.push(null);
 
-                labels.push(d1mLabel);
-                predPrices.push(p1m);
-                actualPrices.push(null);
+                    labels.push(formatShortDate(prediction.date_1m) + " (1M)");
+                    fullDates.push(prediction.date_1m);
+                    predPrices.push(p1m);
+                    actualPrices.push(null);
+                }
             }
 
             totalChartLength = labels.length;
+            stockChart._fullDates = fullDates;
             stockChart.data.labels = labels;
             stockChart.data.datasets[0].data = actualPrices;
             stockChart.data.datasets[1].data = predPrices;
@@ -2905,21 +2840,28 @@
                 }
             });
 
-            // 줌 인덱스 계산 (최신 시점 기준)
+            // 줌 인덱스 계산 (실제 과거와 미래 126일 예측 궤적 비율 최적화)
             if (totalChartLength > 0) {
-                const lastIdx = totalChartLength - 1;
+                const historyLen = (cachedData && cachedData.history) ? cachedData.history.length : Math.max(1, totalChartLength - 126);
+                const lastHistoryIdx = historyLen - 1;
                 let minIdx = 0;
-                let maxIdx = lastIdx;
+                let maxIdx = totalChartLength - 1;
 
-                if (period === '1w' || period === '1d_card') {
-                    minIdx = Math.max(0, lastIdx - 8); // 과거 5영업일 + 미래 3영업일
+                if (period === '1w') {
+                    minIdx = Math.max(0, lastHistoryIdx - 15);
+                    maxIdx = Math.min(totalChartLength - 1, lastHistoryIdx + 5);
+                } else if (period === '1d_card') {
+                    minIdx = Math.max(0, lastHistoryIdx - 10);
+                    maxIdx = Math.min(totalChartLength - 1, lastHistoryIdx + 2);
                 } else if (period === '1m') {
-                    minIdx = Math.max(0, lastIdx - 23); // 과거 20영업일 + 미래 3영업일
+                    minIdx = Math.max(0, lastHistoryIdx - 30);
+                    maxIdx = Math.min(totalChartLength - 1, lastHistoryIdx + 20);
                 } else if (period === '3m') {
-                    minIdx = Math.max(0, lastIdx - 63); // 과거 60영업일 + 미래 3영업일
+                    minIdx = Math.max(0, lastHistoryIdx - 60);
+                    maxIdx = Math.min(totalChartLength - 1, lastHistoryIdx + 60);
                 } else if (period === 'all') {
                     minIdx = 0;
-                    maxIdx = lastIdx;
+                    maxIdx = totalChartLength - 1;
                 }
 
                 applyChartZoom(minIdx, maxIdx);
@@ -3159,8 +3101,78 @@
                 if (modal && e.target === modal) {
                     if (typeof closeAuthModal === 'function') closeAuthModal();
                 }
+
+                const evalModal = document.getElementById("stock-eval-modal");
+                if (evalModal && e.target === evalModal) {
+                    if (typeof closeStockEvalModal === 'function') closeStockEvalModal();
+                }
+            });
+
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    if (typeof closeStockEvalModal === 'function') closeStockEvalModal();
+                    if (typeof closeAuthModal === 'function') closeAuthModal();
+                }
             });
         });
     </script>
+    <!-- 토스 스타일 AI 실전 채점 내역 모달 (Modal) -->
+    <div id="stock-eval-modal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 transition-opacity">
+        <div class="bg-[#0f172a] border border-slate-700/80 rounded-3xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl shadow-blue-950/50">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/60">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                    <h3 id="modal-stock-title" class="text-base sm:text-lg font-bold text-white tracking-tight">AI 실전 채점 내역</h3>
+                </div>
+                <button 
+                    type="button" 
+                    onclick="closeStockEvalModal()" 
+                    class="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+                    title="닫기 (ESC)">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Modal Summary Bar -->
+            <div id="modal-eval-summary-bar" class="px-5 py-3 bg-slate-900/40 border-b border-slate-800/60 text-xs sm:text-sm">
+                <!-- 동적 주입 -->
+            </div>
+
+            <!-- Modal Table Body -->
+            <div class="overflow-y-auto flex-1 p-3 sm:p-5">
+                <div class="border border-slate-800/80 rounded-2xl overflow-hidden">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-800/60 text-slate-400 font-semibold border-b border-slate-800/80">
+                            <tr>
+                                <th class="py-2.5 px-3 whitespace-nowrap">예측 기준일</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">적중 도래일</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">구간</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">기준 종가</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">AI 예측가</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">실제 종가</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap text-center">오차율</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap text-center">판정</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-eval-table-body" class="divide-y divide-slate-800/50 font-mono">
+                            <!-- JS openStockEvalModal에서 동적 주입 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-xs text-slate-500">
+                <span>※ 예측 기준일 당시 모델이 계산한 목표가와 실제 도래일 종가를 대조 채점한 결과입니다.</span>
+                <button 
+                    type="button" 
+                    onclick="closeStockEvalModal()" 
+                    class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
