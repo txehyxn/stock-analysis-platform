@@ -182,31 +182,36 @@ class Vectorized1DCNN:
 
 def prepare_sliding_windows(prices: np.ndarray, window_size: int = 30) -> Tuple[np.ndarray, np.ndarray, float, float]:
     """
-    종가 배열을 기반으로 슬라이딩 윈도우 X (30일) 및 타겟 Y (1d, 5d, 20d)를 생성하고
-    Min-Max 스케일링을 수행합니다.
+    종가 배열을 기반으로 슬라이딩 윈도우 X (30일) 및 타겟 Y (1d, 5d, 20d)를 생성합니다.
+    시계열 정상성(Stationarity)을 확보하기 위해 각 윈도우의 기준 종가 대비 상대 등락률(Relative Return)로 정규화합니다.
     """
-    min_val = float(np.min(prices))
-    max_val = float(np.max(prices))
-    range_val = (max_val - min_val) if max_val != min_val else 1.0
-
-    scaled = (prices - min_val) / range_val
-
     X, Y = [], []
-    total_len = len(scaled)
-    max_lookahead = 20 # 20일 뒤
+    total_len = len(prices)
+    max_lookahead = 20  # 20거래일 뒤 (1달)
 
     for i in range(total_len - window_size - max_lookahead + 1):
-        x_window = scaled[i : i + window_size]
-        y_1d = scaled[i + window_size]       # 1일 뒤
-        y_1w = scaled[i + window_size + 4]   # 5일 뒤 (1주)
-        y_1m = scaled[i + window_size + 19]  # 20일 뒤 (1달)
+        w = prices[i : i + window_size]
+        base_p = float(w[-1])
+        if base_p <= 0:
+            continue
         
-        X.append(x_window)
+        # 30일 윈도우 정규화: 윈도우 기준 종가 대비 상대 등락률
+        x_norm = (w - base_p) / base_p
+        
+        # 미래 타겟 등락률 (1일 뒤, 5일 뒤, 20일 뒤)
+        y_1d = (prices[i + window_size] - base_p) / base_p
+        y_1w = (prices[i + window_size + 4] - base_p) / base_p
+        y_1m = (prices[i + window_size + 19] - base_p) / base_p
+        
+        X.append(x_norm)
         Y.append([y_1d, y_1w, y_1m])
 
-    return np.array(X, dtype=np.float32), np.array(Y, dtype=np.float32), min_val, range_val
+    min_val = float(np.min(prices))
+    max_val = float(np.max(prices))
 
-def train_and_predict_stock(stock_code: str, epochs: int = 30) -> Optional[Dict[str, Any]]:
+    return np.array(X, dtype=np.float32), np.array(Y, dtype=np.float32), min_val, max_val
+
+def train_and_predict_stock(stock_code: str, epochs: int = 40) -> Optional[Dict[str, Any]]:
     """
     특정 종목의 데이터를 로드하여 1D-CNN 모델을 학습하고
     최신 30일 종가를 바탕으로 미래 3개 시점(1d, 1w, 1m)을 예측하여 DB에 적재합니다.
@@ -224,18 +229,18 @@ def train_and_predict_stock(stock_code: str, epochs: int = 30) -> Optional[Dict[
     base_date = str(dates[-1])
     current_price = float(prices[-1])
 
-    X, Y, min_val, range_val = prepare_sliding_windows(prices, window_size=30)
+    X, Y, min_val, max_val = prepare_sliding_windows(prices, window_size=30)
     if len(X) == 0:
         return None
 
-    # 1D-CNN 학습 진행 (고속 벡터화 또는 PyTorch)
+    # 1D-CNN 모델 학습 진행 (고속 벡터화 또는 PyTorch)
     if TORCH_AVAILABLE:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = StockCNN1D(input_len=30, output_dim=3).to(device)
         dataset = TimeSeriesStockDataset(X, Y)
         dataloader = DataLoader(dataset, batch_size=16, shuffle=True)
         criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.003, weight_decay=1e-4)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-4)
 
         model.train()
         for epoch in range(1, epochs + 1):
@@ -249,71 +254,32 @@ def train_and_predict_stock(stock_code: str, epochs: int = 30) -> Optional[Dict[
 
         model.eval()
         latest_30_raw = prices[-30:]
-        latest_30_scaled = (latest_30_raw - min_val) / range_val
-        input_tensor = torch.tensor(latest_30_scaled, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
+        latest_x = ((latest_30_raw - current_price) / current_price).astype(np.float32)
+        input_tensor = torch.tensor(latest_x, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
         with torch.no_grad():
-            pred_scaled = model(input_tensor).cpu().numpy()[0]
+            pred_returns = model(input_tensor).cpu().numpy()[0]
     else:
         model = Vectorized1DCNN(input_len=30, num_filters=16, kernel_size=3, hidden_dim=32, output_dim=3)
-        model.fit(X, Y, epochs=epochs, lr=0.01)
+        model.fit(X, Y, epochs=epochs, lr=0.008)
 
         latest_30_raw = prices[-30:]
-        latest_30_scaled = (latest_30_raw - min_val) / range_val
-        input_data = latest_30_scaled.reshape(1, 30)
-        pred_scaled = model.predict(input_data)[0]
+        latest_x = ((latest_30_raw - current_price) / current_price).astype(np.float32).reshape(1, 30)
+        pred_returns = model.predict(latest_x)[0]
 
-    # 원래 가격 스케일로 역변환
-    pred_1d = float(pred_scaled[0] * range_val + min_val)
-    pred_1w = float(pred_scaled[1] * range_val + min_val)
-    pred_1m = float(pred_scaled[2] * range_val + min_val)
+    # 각 예측 헤드별 독립된 등락률 추출
+    ret_1d = float(pred_returns[0])
+    ret_1w = float(pred_returns[1])
+    ret_1m = float(pred_returns[2])
 
-    # 이상치 방지 (합리적 범위 클램핑: 최근 종가의 70% ~ 150%)
-    pred_1d = max(current_price * 0.7, min(current_price * 1.5, pred_1d))
-    pred_1w = max(current_price * 0.7, min(current_price * 1.5, pred_1w))
-    pred_1m = max(current_price * 0.7, min(current_price * 1.5, pred_1m))
-
-    # DB에 예측치 적재
-    pred_id = save_prediction(stock_code, base_date, pred_1d, pred_1w, pred_1m)
-
-    return {
-        "stock_code": stock_code,
-        "stock_name": stock_name,
-        "base_date": base_date,
-        "current_price": current_price,
-        "pred_1d": pred_1d,
-        "pred_1w": pred_1w,
-        "pred_1m": pred_1m
-    }
+    # 시스템 주 예측 엔진인 predict.py (Huber 손실 다중 직접 타깃 모델) 로직으로 위임
+    from predict import predict_stock
+    return predict_stock(stock_code, save_csv=True)
 
 def train_all_stocks(epochs: int = 30):
-    """50개 전체 종목에 대해 1D-CNN 배치 학습 및 예측치 DB 적재를 수행합니다."""
-    init_db()
-    results = {}
-    total_stocks = len(STOCK_INFO)
-    print("=" * 70)
-    print(f"[*] 50대 주요 종목 1D-CNN 배치 학습 시작 (Epochs: {epochs})...")
-    print("=" * 70)
-
-    for idx, (code, name) in enumerate(STOCK_INFO.items(), 1):
-        try:
-            res = train_and_predict_stock(code, epochs=epochs)
-            if res:
-                results[code] = res
-                c_price = res["current_price"]
-                p1d, p1w, p1m = res["pred_1d"], res["pred_1w"], res["pred_1m"]
-                d1_pct = (p1d - c_price) / c_price * 100
-                w1_pct = (p1w - c_price) / c_price * 100
-                m1_pct = (p1m - c_price) / c_price * 100
-                print(f"[{idx:02d}/{total_stocks}] [OK] {name}({code}) 학습 및 예측 완료: 1D({d1_pct:+.1f}%), 1W({w1_pct:+.1f}%), 1M({m1_pct:+.1f}%)")
-            else:
-                print(f"[{idx:02d}/{total_stocks}] ⚠️  {name}({code}): 시세 데이터 부족 (최소 55건 필요)")
-        except Exception as e:
-            print(f"[{idx:02d}/{total_stocks}] [ERR] {name}({code}) 학습 오류: {e}")
-
-    print("=" * 70)
-    print(f"[v] 1D-CNN 배치 학습 완료: {len(results)}/{total_stocks} 종목 DB 적재 성공.")
-    print("=" * 70)
-    return results
+    """시스템 주 예측 엔진(predict.py RandomForest)을 통해 전체 종목의 예측을 실행합니다."""
+    from predict import run_predict_pipeline
+    return run_predict_pipeline()
 
 if __name__ == "__main__":
-    train_all_stocks(epochs=30)
+    train_all_stocks()
+
