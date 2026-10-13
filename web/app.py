@@ -36,6 +36,7 @@ from database.db_manager import (
     get_prediction_verification,
     get_stock_verification_data,
     get_evaluation_summary,
+    get_evaluation_stats,
     get_recent_evaluations,
     get_past_predictions_map,
     create_user,
@@ -477,31 +478,49 @@ async def api_stock_accuracy(stock_code: str):
 async def api_evaluations(limit: int = 50):
     """
     [🎯 AI 예측 성적표] 전체 종합 통계 및 최근 채점 내역 리스트 반환
+    표준: 1D/1W/1M 기간별 분리 및 정밀 적중(오차 3.0% 이내) 기준
     """
-    summary = get_evaluation_summary()
+    stats = get_evaluation_stats()
     recent_logs = get_recent_evaluations(limit=limit)
     return {
-        "summary": summary,
+        "summary": {
+            "1D": stats.get("1D", {}),
+            "1W": stats.get("1W", {}),
+            "1M": stats.get("1M", {})
+        },
+        "overall": stats.get("overall", {}),
+        "criterion": "방향 일치 및 주가 오차율 ±3.0% 이내",
         "evaluations": recent_logs,
-        "count": len(recent_logs)
+        "count": len(recent_logs),
+        "total_count": stats.get("total_count", 0),
+        "hit_count": stats.get("hit_count", 0),
+        "hit_rate": stats.get("hit_rate", 0.0),
+        "avg_error_rate": stats.get("avg_error_rate", 0.0),
+        "pending_count": stats.get("pending_count", 0)
     }
 
 @app.get("/api/stock/{stock_code}/evaluations")
 async def api_stock_evaluations(stock_code: str, limit: int = 20):
     """
-    특정 종목만의 최근 예측 성적 히스토리 반환
+    특정 종목만의 최근 예측 성적 히스토리 반환 (1D/1W/1M 기간별 분리)
     """
     stock_code = stock_code.zfill(6)
     if stock_code not in STOCK_INFO:
         raise HTTPException(status_code=404, detail="Stock code not found")
     
-    summary = get_evaluation_summary(stock_code=stock_code)
+    stats = get_evaluation_stats(stock_code=stock_code)
     logs = get_recent_evaluations(limit=limit, stock_code=stock_code)
 
     return {
         "stock_code": stock_code,
         "stock_name": STOCK_INFO.get(stock_code, stock_code),
-        "summary": summary,
+        "summary": {
+            "1D": stats.get("1D", {}),
+            "1W": stats.get("1W", {}),
+            "1M": stats.get("1M", {})
+        },
+        "overall": stats.get("overall", {}),
+        "criterion": "방향 일치 및 주가 오차율 ±3.0% 이내",
         "evaluations": logs
     }
 

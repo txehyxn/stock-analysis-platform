@@ -77,6 +77,35 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def migrate_prediction_logs_hit_criteria(conn=None):
+    """
+    기존 평가 완료된 prediction_logs 레코드 전체에 대해
+    새 기준(방향 일치 AND error_rate <= 3.0)을 적용하여 is_hit 값을 일괄 재계산(UPDATE)합니다.
+    """
+    should_close = False
+    if conn is None:
+        conn = get_connection()
+        should_close = True
+    try:
+        cursor = conn.cursor()
+        query = """
+            UPDATE prediction_logs
+            SET is_hit = CASE
+                WHEN ((predicted_price >= base_price AND actual_price >= base_price)
+                   OR (predicted_price < base_price AND actual_price < base_price))
+                 AND error_rate <= 3.0 THEN 1
+                ELSE 0
+            END
+            WHERE status = 'EVALUATED'
+        """
+        cursor.execute(query)
+        conn.commit()
+    except Exception as e:
+        print(f"[-] prediction_logs 마이그레이션 중 오류 (무시 가능): {e}")
+    finally:
+        if should_close:
+            conn.close()
+
 def init_db():
     """데이터베이스 스키마를 초기화합니다."""
     schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
@@ -91,6 +120,7 @@ def init_db():
             with conn.cursor() as cur:
                 cur.execute(schema_sql)
         conn.commit()
+        migrate_prediction_logs_hit_criteria(conn)
     finally:
         conn.close()
 
@@ -387,25 +417,30 @@ def calculate_stock_backtest(stock_code: str, history: Optional[List[Dict[str, A
 def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """
     특정 종목의 실전 채점 로그(prediction_logs) 및 시계열 채점 결과를 100% 실제 데이터 기반으로 집계합니다.
-    데이터가 없는 경우 가짜 값을 채우지 않고 null 또는 '데이터 집계 중'으로 처리합니다.
+    새 기본 표준: '방향 일치 AND 오차율 <= 3.0%' 정밀 적중 기준 + 1D/1W/1M 기간별 분리 집계
     """
     stock_code_clean = str(stock_code).zfill(6)
-    summary = get_evaluation_summary(stock_code_clean)
+    stats = get_evaluation_stats(stock_code_clean)
     recent_evals = get_recent_evaluations(limit=20, stock_code=stock_code_clean)
 
-    total_eval_count = summary.get("total_count", 0)
-    hit_count = summary.get("hit_count", 0)
-    pending_count = summary.get("pending_count", 0)
+    by_period = {
+        "1D": stats.get("1D", {"total": 0, "hits": 0, "hit_rate": 0.0, "avg_error": 0.0, "pending": 0}),
+        "1W": stats.get("1W", {"total": 0, "hits": 0, "hit_rate": 0.0, "avg_error": 0.0, "pending": 0}),
+        "1M": stats.get("1M", {"total": 0, "hits": 0, "hit_rate": 0.0, "avg_error": 0.0, "pending": 0}),
+    }
+
+    total_eval_count = stats.get("total_count", 0)
+    hit_count = stats.get("hit_count", 0)
+    pending_count = stats.get("pending_count", 0)
+    hit_rate = stats.get("hit_rate", 0.0)
+    avg_error_rate = stats.get("avg_error_rate", 0.0)
 
     if total_eval_count > 0:
-        hit_rate = summary.get("hit_rate", 0.0)
-        avg_error_rate = summary.get("avg_error_rate", 0.0)
-
-        if hit_rate >= 70.0:
+        if hit_rate >= 50.0:
             grade = "신뢰도 우수"
             grade_code = "high"
             status_color = "emerald"
-        elif hit_rate >= 50.0:
+        elif hit_rate >= 30.0:
             grade = "보통"
             grade_code = "normal"
             status_color = "blue"
@@ -415,6 +450,7 @@ def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str
             status_color = "amber"
 
         return {
+            "by_period": by_period,
             "hit_rate": hit_rate,
             "avg_error_rate": avg_error_rate,
             "total_eval_count": total_eval_count,
@@ -423,6 +459,7 @@ def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str
             "grade": grade,
             "grade_code": grade_code,
             "status_color": status_color,
+            "criterion": "방향 일치 및 주가 오차율 ±3.0% 이내",
             "recent_evals": recent_evals
         }
 
@@ -432,6 +469,7 @@ def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str
         hr = bt.get("hit_ratio")
         bt_evals = []
         for t in bt.get("tests", []):
+            is_strict_hit = bool(t.get("is_hit") and t.get("error_pct", 999) <= 3.0)
             bt_evals.append({
                 "id": None,
                 "stock_code": stock_code_clean,
@@ -441,16 +479,17 @@ def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str
                 "base_price": t.get("base_price"),
                 "predicted_price": t.get("pred_price"),
                 "actual_price": t.get("actual_price"),
-                "is_hit": t.get("is_hit"),
+                "is_hit": is_strict_hit,
                 "error_rate": t.get("error_pct"),
                 "status": "EVALUATED",
-                "verdict_label": "🎯 적중" if t.get("is_hit") else "❌ 불일치",
-                "verdict_color": "emerald" if t.get("is_hit") else "rose",
+                "verdict_label": "🎯 정밀 적중" if is_strict_hit else ("↗️ 추세 일치" if t.get("is_hit") else "❌ 빗나감"),
+                "verdict_color": "emerald" if is_strict_hit else ("blue" if t.get("is_hit") else "rose"),
                 "pred_change_pct": round((t.get("pred_price", 0) - t.get("base_price", 1)) / (t.get("base_price", 1) + 1e-9) * 100, 2),
                 "actual_change_pct": round((t.get("actual_price", 0) - t.get("base_price", 1)) / (t.get("base_price", 1) + 1e-9) * 100, 2)
             })
 
         return {
+            "by_period": by_period,
             "hit_rate": hr,
             "avg_error_rate": bt.get("mape"),
             "total_eval_count": bt.get("total_tests", 0),
@@ -459,11 +498,13 @@ def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str
             "grade": bt.get("grade", "보통"),
             "grade_code": bt.get("grade_code", "normal"),
             "status_color": bt.get("status_color", "blue"),
+            "criterion": "방향 일치 및 주가 오차율 ±3.0% 이내",
             "recent_evals": bt_evals
         }
 
     # 데이터가 아예 없는 경우 가짜 값을 채우지 않고 null 처리
     return {
+        "by_period": by_period,
         "hit_rate": None,
         "avg_error_rate": None,
         "total_eval_count": 0,
@@ -472,6 +513,7 @@ def get_stock_verification_data(stock_code: str, history: Optional[List[Dict[str
         "grade": "데이터 집계 중",
         "grade_code": "pending",
         "status_color": "slate",
+        "criterion": "방향 일치 및 주가 오차율 ±3.0% 이내",
         "recent_evals": []
     }
 
@@ -684,7 +726,8 @@ def save_prediction_log(
 def evaluate_pending_predictions(today_date: Optional[str] = None) -> int:
     """
     목표일(target_date)이 오늘이거나 지난 PENDING 건들에 대해,
-    실제 도래일(또는 직후 첫 거래일)의 실제 종가를 가져와 방향 일치(is_hit) 및 오차율(error_rate)을 계산 후 EVALUATED 처리합니다.
+    실제 도래일(또는 직후 첫 거래일)의 실제 종가를 가져와 방향 일치 및 오차율(error_rate <= 3.0%) 정밀 적중 기준(is_hit)을 계산 후 EVALUATED 처리합니다.
+    공식 적중 기준: 방향 일치 AND 오차율 <= 3.0%
     """
     init_db()
     conn = get_connection()
@@ -734,13 +777,16 @@ def evaluate_pending_predictions(today_date: Optional[str] = None) -> int:
             actual_date = price_row[0] if not is_sqlite else price_row["date"]
             actual_price = int(round(float(price_row[1] if not is_sqlite else price_row["close_price"])))
 
-            # 방향 적중 판정 (상승/하락 방향성 일치 여부)
+            # 방향 일치 판정 (상승/하락 방향성 일치 여부)
             pred_dir = 1 if pred_p >= base_p else -1
             actual_dir = 1 if actual_price >= base_p else -1
-            is_hit = (pred_dir == actual_dir)
+            dir_match = (pred_dir == actual_dir)
 
             # 오차율 계산: abs(예측가 - 실제가) / 실제가 * 100
             error_rate = round(abs(pred_p - actual_price) / (actual_price + 1e-9) * 100, 2)
+
+            # 공식 적중 기준: 방향 일치 AND 오차율 <= 3.0% (정밀 적중)
+            is_hit = (dir_match and error_rate <= 3.0)
 
             update_q = """
                 UPDATE prediction_logs
@@ -757,15 +803,11 @@ def evaluate_pending_predictions(today_date: Optional[str] = None) -> int:
     finally:
         conn.close()
 
-def get_evaluation_summary(stock_code: Optional[str] = None) -> Dict[str, Any]:
+def get_evaluation_stats(stock_code: Optional[str] = None) -> Dict[str, Any]:
     """
-    실전 예측 채점 테이블(prediction_logs)의 누적 성적표 요약 통계를 반환합니다.
-    - stock_code 지정 시 해당 종목만의 누적 성적 집계
-    - total_count: 검증 완료 건수
-    - hit_count: 방향 적중 건수
-    - hit_rate: 실전 누적 적중률 (%)
-    - avg_error_rate: 평균 주가 오차율 (%)
-    - pending_count: 현재 진행 중(대기)인 예측 건수
+    실전 예측 채점 테이블(prediction_logs)의 누적 성적을
+    period_type('1D', '1W', '1M')별로 분리 집계하여 반환합니다.
+    공식 적중 기준: 방향 일치 AND 주가 오차율 <= 3.0% (정밀 적중)
     """
     init_db()
     conn = get_connection()
@@ -773,63 +815,123 @@ def get_evaluation_summary(stock_code: Optional[str] = None) -> Dict[str, Any]:
         cursor = conn.cursor()
         is_sqlite = isinstance(conn, sqlite3.Connection)
         
+        where_clause = "WHERE status = 'EVALUATED'"
+        where_pend = "WHERE status = 'PENDING'"
+        params = []
+        params_pend = []
+        
         if stock_code:
             code_clean = str(stock_code).zfill(6)
-            q_eval = """
-                SELECT 
-                    COUNT(*) as total_count,
-                    COALESCE(SUM(CASE WHEN is_hit = 1 THEN 1 ELSE 0 END), 0) as hit_count,
-                    COALESCE(AVG(error_rate), 0.0) as avg_error_rate
-                FROM prediction_logs
-                WHERE status = 'EVALUATED' AND stock_code = ?
-            """
-            q_pend = "SELECT COUNT(*) FROM prediction_logs WHERE status = 'PENDING' AND stock_code = ?"
-            params = (code_clean,)
-        else:
-            q_eval = """
-                SELECT 
-                    COUNT(*) as total_count,
-                    COALESCE(SUM(CASE WHEN is_hit = 1 THEN 1 ELSE 0 END), 0) as hit_count,
-                    COALESCE(AVG(error_rate), 0.0) as avg_error_rate
-                FROM prediction_logs
-                WHERE status = 'EVALUATED'
-            """
-            q_pend = "SELECT COUNT(*) FROM prediction_logs WHERE status = 'PENDING'"
-            params = ()
-
+            where_clause += " AND stock_code = ?"
+            where_pend += " AND stock_code = ?"
+            params.append(code_clean)
+            params_pend.append(code_clean)
+            
+        q_eval = f"""
+            SELECT 
+                period_type,
+                COUNT(*) as total_count,
+                COALESCE(SUM(CASE WHEN is_hit = 1 THEN 1 ELSE 0 END), 0) as hit_count,
+                COALESCE(AVG(error_rate), 0.0) as avg_error_rate
+            FROM prediction_logs
+            {where_clause}
+            GROUP BY period_type
+        """
+        
+        q_pend = f"""
+            SELECT 
+                period_type,
+                COUNT(*) as pending_count
+            FROM prediction_logs
+            {where_pend}
+            GROUP BY period_type
+        """
+        
         if not is_sqlite:
             q_eval = q_eval.replace("?", "%s")
             q_pend = q_pend.replace("?", "%s")
-
-        cursor.execute(q_eval, params)
-        row = cursor.fetchone()
-        if is_sqlite:
-            total = row["total_count"]
-            hits = row["hit_count"]
-            avg_err = row["avg_error_rate"]
-        else:
-            total, hits, avg_err = row
-
-        hit_rate = round((hits / total) * 100, 1) if total > 0 else 0.0
-        avg_err = round(float(avg_err), 2)
-
-        cursor.execute(q_pend, params)
-        p_row = cursor.fetchone()
-        pending = p_row[0] if not is_sqlite else p_row[0]
-
-        return {
-            "total_count": int(total),
-            "hit_count": int(hits),
-            "hit_rate": hit_rate,
-            "avg_error_rate": avg_err,
-            "pending_count": int(pending)
+            
+        cursor.execute(q_eval, tuple(params))
+        eval_rows = cursor.fetchall()
+        
+        cursor.execute(q_pend, tuple(params_pend))
+        pend_rows = cursor.fetchall()
+        
+        pending_map = {}
+        for r in pend_rows:
+            pt = r[0] if not is_sqlite else r["period_type"]
+            cnt = r[1] if not is_sqlite else r["pending_count"]
+            pending_map[str(pt).upper()] = int(cnt)
+            
+        stats = {}
+        periods = ['1D', '1W', '1M']
+        for p in periods:
+            stats[p] = {
+                "total": 0,
+                "hits": 0,
+                "hit_rate": 0.0,
+                "avg_error": 0.0,
+                "pending": pending_map.get(p, 0)
+            }
+            
+        total_sum = 0
+        hits_sum = 0
+        error_sum = 0.0
+        
+        for r in eval_rows:
+            pt = str(r[0] if not is_sqlite else r["period_type"]).upper()
+            tot = int(r[1] if not is_sqlite else r["total_count"])
+            hit = int(r[2] if not is_sqlite else r["hit_count"])
+            avg_e = round(float(r[3] if not is_sqlite else r["avg_error_rate"]), 2)
+            
+            hr = round((hit / tot) * 100, 1) if tot > 0 else 0.0
+            
+            if pt in stats:
+                stats[pt]["total"] = tot
+                stats[pt]["hits"] = hit
+                stats[pt]["hit_rate"] = hr
+                stats[pt]["avg_error"] = avg_e
+                
+            total_sum += tot
+            hits_sum += hit
+            error_sum += (avg_e * tot)
+            
+        pending_total = sum(pending_map.values())
+        overall_rate = round((hits_sum / total_sum) * 100, 1) if total_sum > 0 else 0.0
+        overall_error = round(error_sum / total_sum, 2) if total_sum > 0 else 0.0
+        
+        stats["overall"] = {
+            "total": total_sum,
+            "hits": hits_sum,
+            "hit_rate": overall_rate,
+            "avg_error": overall_error,
+            "pending": pending_total
         }
+        
+        # 하위 호환 필드 (기존 UI 및 API 호환성 보장)
+        stats["total_count"] = total_sum
+        stats["hit_count"] = hits_sum
+        stats["hit_rate"] = overall_rate
+        stats["avg_error_rate"] = overall_error
+        stats["pending_count"] = pending_total
+        stats["criterion"] = "방향 일치 및 주가 오차율 ±3.0% 이내"
+        
+        return stats
     finally:
         conn.close()
+
+def get_evaluation_summary(stock_code: Optional[str] = None) -> Dict[str, Any]:
+    """
+    실전 예측 채점 통계를 반환합니다. get_evaluation_stats()의 기간별 분리 표준을 기본 반환합니다.
+    """
+    return get_evaluation_stats(stock_code)
 
 def get_recent_evaluations(limit: int = 30, stock_code: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     최근 채점 완료 및 진행 중인 예측 내역 리스트를 반환합니다.
+    - 🎯 정밀 적중: 오차율 <= 3.0% & 방향 일치
+    - ↗️ 추세 일치: 오차율 > 3.0% & 방향 일치
+    - ❌ 빗나감: 방향 불일치
     """
     init_db()
     conn = get_connection()
@@ -887,16 +989,23 @@ def get_recent_evaluations(limit: int = 30, stock_code: Optional[str] = None) ->
             item["actual_change_pct"] = round((ap - bp) / (bp + 1e-9) * 100, 2) if ap is not None else None
 
             if item["status"] == "EVALUATED":
-                if item["is_hit"]:
-                    if item["error_rate"] is not None and item["error_rate"] <= 3.0:
-                        item["verdict_label"] = "🎯 정밀 적중"
-                        item["verdict_color"] = "emerald"
-                    else:
-                        item["verdict_label"] = "✅ 방향 적중"
-                        item["verdict_color"] = "emerald"
+                dir_match = (
+                    (pp >= bp and ap >= bp) or (pp < bp and ap < bp)
+                ) if ap is not None else False
+                err_rate = item.get("error_rate")
+                
+                if dir_match and err_rate is not None and err_rate <= 3.0:
+                    item["verdict_label"] = "🎯 정밀 적중"
+                    item["verdict_color"] = "emerald"
+                    item["is_hit"] = True
+                elif dir_match:
+                    item["verdict_label"] = "↗️ 추세 일치"
+                    item["verdict_color"] = "blue"
+                    item["is_hit"] = False
                 else:
                     item["verdict_label"] = "❌ 빗나감"
                     item["verdict_color"] = "rose"
+                    item["is_hit"] = False
             else:
                 item["verdict_label"] = "⏳ 진행중"
                 item["verdict_color"] = "blue"

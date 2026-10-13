@@ -963,6 +963,10 @@
                         <p class="text-xs text-slate-400 mt-1">
                             과거 AI가 제시했던 목표가와 실제 도래일 종가를 1:1 대조하여 방향 적중 및 오차율을 투명하게 공개합니다.
                         </p>
+                        <p class="text-[11px] text-emerald-400/90 mt-1 font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-circle-check text-[10px]"></i>
+                            <span>공식 적중 기준: 주가 방향 일치 및 종가 오차율 ±3.0% 이내 달성 (정밀 적중)</span>
+                        </p>
                     </div>
                 </div>
 
@@ -976,55 +980,64 @@
                 </div>
             </div>
 
-            <!-- 3 Summary Metrics Cards Grid -->
+            <!-- 3 Summary Metrics Cards Grid: 1D / 1W / 1M 기간별 분리 표준 -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                 
-                <!-- Metric 1: 실전 누적 적중률 -->
+                <!-- Metric 1: 1D (내일) 정밀 적중률 -->
                 <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
                     <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider">실전 누적 적중률</span>
-                        <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm font-bold">
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 rounded-md bg-blue-500/20 text-blue-400 font-mono text-[10px] font-bold">1D</span>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-white">내일 정밀 적중률</span>
+                        </div>
+                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-blue-400 font-mono" id="eval-summary-1d-hit-rate">--%</div>
+                    <div class="text-xs text-slate-400 mt-1 font-mono flex items-center justify-between">
+                        <span id="eval-summary-1d-hits">--건 적중 / --건 완료</span>
+                        <span id="eval-summary-1d-err" class="text-slate-400 font-mono text-[11px]">오차 ±--%</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-cyan-400"></div>
+                </div>
+
+                <!-- Metric 2: 1W (1주일) 정밀 적중률 -->
+                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold">1W</span>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-white">1주일 정밀 적중률</span>
+                        </div>
+                        <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm font-bold">
+                            <i class="fa-solid fa-calendar-week"></i>
+                        </div>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono" id="eval-summary-1w-hit-rate">--%</div>
+                    <div class="text-xs text-slate-400 mt-1 font-mono flex items-center justify-between">
+                        <span id="eval-summary-1w-hits">--건 적중 / --건 완료</span>
+                        <span id="eval-summary-1w-err" class="text-slate-400 font-mono text-[11px]">오차 ±--%</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-400"></div>
+                </div>
+
+                <!-- Metric 3: 1M (1달) 정밀 적중률 -->
+                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
+                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-1.5 py-0.5 rounded-md bg-violet-500/20 text-violet-400 font-mono text-[10px] font-bold">1M</span>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-white">1달 정밀 적중률</span>
+                        </div>
+                        <div class="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center text-sm font-bold">
                             <i class="fa-solid fa-bullseye"></i>
                         </div>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono" id="eval-summary-hit-rate">--%</div>
+                    <div class="text-2xl sm:text-3xl font-extrabold text-violet-400 font-mono" id="eval-summary-1m-hit-rate">--%</div>
                     <div class="text-xs text-slate-400 mt-1 font-mono flex items-center justify-between">
-                        <span id="eval-summary-hits">--건 적중 / --건 완료</span>
-                        <span class="text-emerald-500/80 font-bold text-[10px]">방향성 일치 기준</span>
+                        <span id="eval-summary-1m-hits">--건 적중 / --건 완료</span>
+                        <span id="eval-summary-1m-err" class="text-slate-400 font-mono text-[11px]">오차 ±--%</span>
                     </div>
-                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
-                </div>
-
-                <!-- Metric 2: 평균 주가 오차율 -->
-                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider">평균 주가 오차율</span>
-                        <div class="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm font-bold">
-                            <i class="fa-solid fa-chart-line"></i>
-                        </div>
-                    </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-blue-400 font-mono" id="eval-summary-error-rate">±--%</div>
-                    <div class="text-xs text-slate-400 mt-1 flex items-center justify-between">
-                        <span class="text-slate-400">실제 종가 대비 평균 편차</span>
-                        <span class="text-blue-400/80 font-mono font-bold text-[10px]">MAPE</span>
-                    </div>
-                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                </div>
-
-                <!-- Metric 3: 총 검증 완료 건수 -->
-                <div class="toss-card p-4 sm:p-5 rounded-3xl relative overflow-hidden">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider">총 검증 완료 건수</span>
-                        <div class="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center text-sm font-bold">
-                            <i class="fa-solid fa-list-check"></i>
-                        </div>
-                    </div>
-                    <div class="text-2xl sm:text-3xl font-extrabold text-white font-mono" id="eval-summary-total">--건</div>
-                    <div class="text-xs text-slate-400 mt-1 font-mono flex items-center justify-between">
-                        <span id="eval-summary-pending">--건 검증 대기 중</span>
-                        <span class="text-violet-400/80 font-bold text-[10px]">1D / 1W 실전</span>
-                    </div>
-                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500"></div>
+                    <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-400"></div>
                 </div>
 
             </div>
@@ -1033,7 +1046,8 @@
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
                 <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar bg-[#141c2e] p-1 rounded-2xl border border-slate-800">
                     <button onclick="filterEvaluations('all')" id="eval-filter-all" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-blue-600 text-white shadow-sm whitespace-nowrap cursor-pointer">전체 보기</button>
-                    <button onclick="filterEvaluations('hit')" id="eval-filter-hit" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">🎯 적중만 (<span id="eval-count-hit">0</span>)</button>
+                    <button onclick="filterEvaluations('hit')" id="eval-filter-hit" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">🎯 정밀 적중 (<span id="eval-count-hit">0</span>)</button>
+                    <button onclick="filterEvaluations('trend')" id="eval-filter-trend" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">↗️ 추세 일치 (<span id="eval-count-trend">0</span>)</button>
                     <button onclick="filterEvaluations('miss')" id="eval-filter-miss" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">❌ 빗나감 (<span id="eval-count-miss">0</span>)</button>
                     <button onclick="filterEvaluations('pending')" id="eval-filter-pending" class="eval-filter-btn px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap cursor-pointer">⏳ 대기중 (<span id="eval-count-pending">0</span>)</button>
                 </div>
@@ -1380,34 +1394,64 @@
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 
-                // 1. 요약 메트릭 카드 갱신
+                // 1. 기간별 분리 표준 메트릭 카드 갱신 (1D, 1W, 1M)
                 const s = data.summary || {};
-                const hitRateEl = document.getElementById("eval-summary-hit-rate");
-                const hitsEl = document.getElementById("eval-summary-hits");
-                const errRateEl = document.getElementById("eval-summary-error-rate");
-                const totalEl = document.getElementById("eval-summary-total");
-                const pendingEl = document.getElementById("eval-summary-pending");
-                const tabHitRate = document.getElementById("eval-tab-hit-rate");
+                const s1d = s['1D'] || {};
+                const s1w = s['1W'] || {};
+                const s1m = s['1M'] || {};
 
-                if (hitRateEl) hitRateEl.innerText = `${s.hit_rate || 0}%`;
-                if (hitsEl) hitsEl.innerText = `${s.hit_count || 0}건 적중 / ${s.total_count || 0}건 완료`;
-                if (errRateEl) errRateEl.innerText = `±${s.avg_error_rate || 0}%`;
-                if (totalEl) totalEl.innerText = `${s.total_count || 0}건`;
-                if (pendingEl) pendingEl.innerText = `${s.pending_count || 0}건 검증 대기 중`;
-                if (tabHitRate) tabHitRate.innerText = `${s.hit_rate || 0}%`;
+                // 1D 카드 (내일)
+                const r1d = document.getElementById("eval-summary-1d-hit-rate");
+                const h1d = document.getElementById("eval-summary-1d-hits");
+                const e1d = document.getElementById("eval-summary-1d-err");
+                if (r1d) r1d.innerText = `${s1d.hit_rate || 0}%`;
+                if (h1d) h1d.innerText = `${s1d.hits || 0}건 적중 / ${s1d.total || 0}건 채점`;
+                if (e1d) e1d.innerText = `오차 ±${s1d.avg_error || 0}%`;
+
+                // 1W 카드 (1주일)
+                const r1w = document.getElementById("eval-summary-1w-hit-rate");
+                const h1w = document.getElementById("eval-summary-1w-hits");
+                const e1w = document.getElementById("eval-summary-1w-err");
+                if (r1w) r1w.innerText = `${s1w.hit_rate || 0}%`;
+                if (h1w) h1w.innerText = `${s1w.hits || 0}건 적중 / ${s1w.total || 0}건 채점`;
+                if (e1w) e1w.innerText = `오차 ±${s1w.avg_error || 0}%`;
+
+                // 1M 카드 (1달)
+                const r1m = document.getElementById("eval-summary-1m-hit-rate");
+                const h1m = document.getElementById("eval-summary-1m-hits");
+                const e1m = document.getElementById("eval-summary-1m-err");
+                if (r1m) r1m.innerText = `${s1m.hit_rate || 0}%`;
+                if (h1m) h1m.innerText = `${s1m.hits || 0}건 적중 / ${s1m.total || 0}건 채점`;
+                if (e1m) e1m.innerText = `오차 ±${s1m.avg_error || 0}%`;
+
+                // 상단 네비게이션 탭 적중률 배지
+                const tabHitRate = document.getElementById("eval-tab-hit-rate");
+                if (tabHitRate) {
+                    const hit1d = s1d.hit_rate !== undefined ? s1d.hit_rate : (data.hit_rate || 0);
+                    tabHitRate.innerText = `1D ${hit1d}%`;
+                }
 
                 // 2. 캐시 및 필터링 렌더링
                 cachedEvaluations = data.evaluations || [];
                 
-                // 카운트 배지 갱신
+                // 카운트 배지 갱신 (정밀 적중, 추세 일치, 빗나감, 대기중)
                 const hitCount = cachedEvaluations.filter(e => e.status === 'EVALUATED' && e.is_hit).length;
-                const missCount = cachedEvaluations.filter(e => e.status === 'EVALUATED' && !e.is_hit).length;
+                const trendCount = cachedEvaluations.filter(e => e.status === 'EVALUATED' && !e.is_hit && (
+                    ((e.predicted_price >= e.base_price && e.actual_price >= e.base_price) || 
+                     (e.predicted_price < e.base_price && e.actual_price < e.base_price))
+                )).length;
+                const missCount = cachedEvaluations.filter(e => e.status === 'EVALUATED' && !(
+                    ((e.predicted_price >= e.base_price && e.actual_price >= e.base_price) || 
+                     (e.predicted_price < e.base_price && e.actual_price < e.base_price))
+                )).length;
                 const pendingCount = cachedEvaluations.filter(e => e.status === 'PENDING').length;
 
                 const hitCntEl = document.getElementById("eval-count-hit");
+                const trendCntEl = document.getElementById("eval-count-trend");
                 const missCntEl = document.getElementById("eval-count-miss");
                 const pendCntEl = document.getElementById("eval-count-pending");
                 if (hitCntEl) hitCntEl.innerText = hitCount;
+                if (trendCntEl) trendCntEl.innerText = trendCount;
                 if (missCntEl) missCntEl.innerText = missCount;
                 if (pendCntEl) pendCntEl.innerText = pendingCount;
 
@@ -1432,7 +1476,7 @@
 
         function filterEvaluations(filterType) {
             currentEvalFilter = filterType;
-            ['all', 'hit', 'miss', 'pending'].forEach(type => {
+            ['all', 'hit', 'trend', 'miss', 'pending'].forEach(type => {
                 const btn = document.getElementById(`eval-filter-${type}`);
                 if (!btn) return;
                 if (type === filterType) {
@@ -1452,11 +1496,19 @@
         function applyEvaluationFilters() {
             let filtered = cachedEvaluations;
 
-            // 1. 상태 필터
+            // 1. 상태 필터 (정밀 적중, 추세 일치, 빗나감, 대기중)
             if (currentEvalFilter === 'hit') {
                 filtered = filtered.filter(e => e.status === 'EVALUATED' && e.is_hit);
+            } else if (currentEvalFilter === 'trend') {
+                filtered = filtered.filter(e => e.status === 'EVALUATED' && !e.is_hit && (
+                    ((e.predicted_price >= e.base_price && e.actual_price >= e.base_price) || 
+                     (e.predicted_price < e.base_price && e.actual_price < e.base_price))
+                ));
             } else if (currentEvalFilter === 'miss') {
-                filtered = filtered.filter(e => e.status === 'EVALUATED' && !e.is_hit);
+                filtered = filtered.filter(e => e.status === 'EVALUATED' && !(
+                    ((e.predicted_price >= e.base_price && e.actual_price >= e.base_price) || 
+                     (e.predicted_price < e.base_price && e.actual_price < e.base_price))
+                ));
             } else if (currentEvalFilter === 'pending') {
                 filtered = filtered.filter(e => e.status === 'PENDING');
             }
@@ -1497,12 +1549,24 @@
                 let verdictText = item.verdict_label || '⏳ 진행중';
 
                 if (isEvaluated) {
-                    if (isHit) {
+                    const dirMatch = (
+                        (item.predicted_price >= item.base_price && item.actual_price >= item.base_price) ||
+                        (item.predicted_price < item.base_price && item.actual_price < item.base_price)
+                    );
+                    const errRate = item.error_rate;
+
+                    if (dirMatch && errRate !== null && errRate <= 3.0) {
                         badgeClass = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
                         badgeIcon = '<i class="fa-solid fa-circle-check text-xs"></i>';
+                        verdictText = "🎯 정밀 적중";
+                    } else if (dirMatch) {
+                        badgeClass = "bg-blue-500/20 text-blue-300 border border-blue-500/40";
+                        badgeIcon = '<i class="fa-solid fa-arrow-trend-up text-xs"></i>';
+                        verdictText = "↗️ 추세 일치";
                     } else {
                         badgeClass = "bg-rose-500/20 text-rose-300 border border-rose-500/40";
                         badgeIcon = '<i class="fa-solid fa-circle-xmark text-xs"></i>';
+                        verdictText = "❌ 빗나감";
                     }
                 }
 
@@ -1594,6 +1658,15 @@
                 const resp = await fetch("/api/evaluations?limit=1");
                 if (!resp.ok) return;
                 const data = await resp.json();
+                const tabBadge = document.getElementById("eval-tab-hit-rate");
+                if (tabBadge) {
+                    const s1d = (data.summary && data.summary['1D']) ? data.summary['1D'] : null;
+                    if (s1d && s1d.hit_rate !== undefined) {
+                        tabBadge.innerText = `1D ${s1d.hit_rate}%`;
+                    } else if (data.hit_rate !== undefined) {
+                        tabBadge.innerText = `${data.hit_rate}%`;
+                    }
+                }
                 if (data.summary && data.summary.hit_rate !== undefined) {
                     const tabBadge = document.getElementById("eval-tab-hit-rate");
                     if (tabBadge) {
@@ -2420,41 +2493,55 @@
             setPeriodFilter(currentPeriodFilter);
         }
 
-        // 종목 AI 채점 요약 단일 뱃지 렌더링
+        // 종목 AI 채점 요약 1D / 1W / 1M 기간별 분리 뱃지 렌더링
         function renderStockAccuracySummary(data) {
             const container = document.getElementById("stock-accuracy-summary");
             if (!container) return;
 
             const v = data.verification || {};
-            let hitRate = v.hit_rate;
-            if (hitRate === null || hitRate === undefined || isNaN(hitRate)) {
-                if (data.backtest && data.backtest.hit_ratio !== null && data.backtest.hit_ratio !== undefined) {
-                    hitRate = data.backtest.hit_ratio;
+            const byPeriod = v.by_period || {};
+            const s1d = byPeriod['1D'] || {};
+            const s1w = byPeriod['1W'] || {};
+            const s1m = byPeriod['1M'] || {};
+
+            function formatPeriodBadge(label, stats) {
+                const tot = stats.total || 0;
+                if (tot > 0) {
+                    const hr = Number(stats.hit_rate || 0).toFixed(1);
+                    const err = Number(stats.avg_error || 0).toFixed(1);
+                    const isGood = Number(hr) >= 30;
+                    const cls = isGood 
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+                        : "bg-blue-500/15 text-blue-400 border-blue-500/30";
+                    return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold font-mono ${cls} border shadow-sm">
+                        <span class="text-[10px] font-sans opacity-80">${label}</span>
+                        <span>${hr}%</span>
+                        <span class="text-[10px] opacity-80 font-mono">(±${err}%)</span>
+                    </span>`;
+                } else {
+                    return `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold font-mono bg-slate-800/80 text-slate-400 border border-slate-700/60 shadow-sm">
+                        <span class="text-[10px] font-sans opacity-80">${label}</span>
+                        <span class="text-[10px]">대기중</span>
+                    </span>`;
                 }
             }
 
-            let badgeHtml = "";
-            if (hitRate !== null && hitRate !== undefined && !isNaN(hitRate)) {
-                const hr = Math.round(Number(hitRate));
-                if (hr >= 70) {
-                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm">🎯 AI 적중률 ${hr}% · 신뢰도 우수</span>`;
-                } else if (hr >= 50) {
-                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm">📊 AI 적중률 ${hr}% · 보통</span>`;
-                } else {
-                    badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm">⚠️ AI 적중률 ${hr}% · 변동성 주의</span>`;
-                }
-            } else {
-                badgeHtml = `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold font-mono bg-slate-800 text-slate-400 border border-slate-700/60 shadow-sm">⏳ AI 적중률 집계 중</span>`;
-            }
+            const badge1d = formatPeriodBadge("1D 내일", s1d);
+            const badge1w = formatPeriodBadge("1W 1주일", s1w);
+            const badge1m = formatPeriodBadge("1M 1달", s1m);
 
             container.innerHTML = `
-                ${badgeHtml}
-                <button 
-                    type="button"
-                    onclick="openStockEvalModal()" 
-                    class="text-xs font-semibold text-slate-400 hover:text-blue-400 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/60 cursor-pointer">
-                    <span>[실전 채점 내역 &gt;]</span>
-                </button>
+                <div class="flex items-center gap-2 flex-wrap">
+                    ${badge1d}
+                    ${badge1w}
+                    ${badge1m}
+                    <button 
+                        type="button"
+                        onclick="openStockEvalModal()" 
+                        class="text-xs font-semibold text-slate-300 hover:text-blue-400 flex items-center gap-1 transition-colors px-2.5 py-1 rounded-xl bg-[#141c2e] hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/60 cursor-pointer shadow-sm">
+                        <span>실전 성적표 &gt;</span>
+                    </button>
+                </div>
             `;
         }
 
@@ -2470,20 +2557,37 @@
 
             const summaryBar = document.getElementById("modal-eval-summary-bar");
             const v = (cachedData && cachedData.verification) ? cachedData.verification : {};
+            const byPeriod = v.by_period || {};
+            const s1d = byPeriod['1D'] || {};
+            const s1w = byPeriod['1W'] || {};
+            const s1m = byPeriod['1M'] || {};
+
             if (summaryBar) {
-                if (v.hit_rate !== null && v.hit_rate !== undefined && !isNaN(v.hit_rate)) {
-                    const hr = Number(v.hit_rate).toFixed(1);
-                    const err = (v.avg_error_rate !== null && v.avg_error_rate !== undefined) ? Number(v.avg_error_rate).toFixed(1) : '-';
-                    summaryBar.innerHTML = `
-                        <div class="flex items-center gap-4 text-slate-300">
-                            <span>누적 채점: <strong class="text-white">${v.total_eval_count || 0}</strong>건</span>
-                            <span>적중률: <strong class="${v.hit_rate >= 50 ? 'text-emerald-400' : 'text-amber-400'}">${hr}%</strong></span>
-                            <span>평균 오차율: <strong class="text-blue-400">±${err}%</strong></span>
+                summaryBar.innerHTML = `
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                                <div class="text-[10px] text-slate-400 font-bold">1D 내일 정밀 적중</div>
+                                <div class="text-sm font-extrabold text-blue-400 font-mono mt-0.5">${s1d.total ? s1d.hit_rate + '%' : '집계중'}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">${s1d.total ? `${s1d.hits}/${s1d.total}건 (±${s1d.avg_error}%)` : '-'}</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                                <div class="text-[10px] text-slate-400 font-bold">1W 1주일 정밀 적중</div>
+                                <div class="text-sm font-extrabold text-amber-400 font-mono mt-0.5">${s1w.total ? s1w.hit_rate + '%' : '집계중'}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">${s1w.total ? `${s1w.hits}/${s1w.total}건 (±${s1w.avg_error}%)` : '-'}</div>
+                            </div>
+                            <div class="p-2 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                                <div class="text-[10px] text-slate-400 font-bold">1M 1달 정밀 적중</div>
+                                <div class="text-sm font-extrabold text-violet-400 font-mono mt-0.5">${s1m.total ? s1m.hit_rate + '%' : '집계중'}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">${s1m.total ? `${s1m.hits}/${s1m.total}건 (±${s1m.avg_error}%)` : '-'}</div>
+                            </div>
                         </div>
-                    `;
-                } else {
-                    summaryBar.innerHTML = `<span class="text-slate-400">현재 데이터 집계 중입니다.</span>`;
-                }
+                        <div class="text-[11px] text-emerald-400/90 font-medium flex items-center justify-between pt-1 border-t border-slate-800/60">
+                            <span>※ 공식 적중 기준: 주가 방향 일치 및 종가 오차율 ±3.0% 이내 달성 (정밀 적중)</span>
+                            <span class="text-slate-400 font-mono">총 ${v.total_eval_count || 0}건 완료</span>
+                        </div>
+                    </div>
+                `;
             }
 
             const tbody = document.getElementById("modal-eval-table-body");
@@ -2499,14 +2603,23 @@
                         const pPrice = item.predicted_price !== undefined ? Number(item.predicted_price).toLocaleString('ko-KR') + '원' : (item.pred_price ? Number(item.pred_price).toLocaleString('ko-KR') + '원' : '-');
                         const aPrice = item.actual_price ? Number(item.actual_price).toLocaleString('ko-KR') + '원' : '대기중';
                         const isEvaluated = item.status === 'EVALUATED' || (item.actual_price !== null && item.actual_price !== undefined);
-                        const isHit = item.is_hit === 1 || item.is_hit === true;
                         const errPct = (item.error_rate !== null && item.error_rate !== undefined) ? `±${Number(item.error_rate).toFixed(1)}%` : '-';
                         
                         let badgeHtml = "";
                         if (isEvaluated) {
-                            const badgeClass = isHit ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "bg-rose-500/20 text-rose-300 border-rose-500/30";
-                            const label = isHit ? "🎯 적중" : "❌ 불일치";
-                            badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border font-sans ${badgeClass}">${label}</span>`;
+                            const bp = item.base_price || 0;
+                            const pp = item.predicted_price || item.pred_price || 0;
+                            const ap = item.actual_price || 0;
+                            const dirMatch = ((pp >= bp && ap >= bp) || (pp < bp && ap < bp));
+                            const errRate = item.error_rate;
+
+                            if (dirMatch && errRate !== null && errRate <= 3.0) {
+                                badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border font-sans bg-emerald-500/20 text-emerald-300 border-emerald-500/30">🎯 정밀 적중</span>`;
+                            } else if (dirMatch) {
+                                badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border font-sans bg-blue-500/20 text-blue-300 border-blue-500/30">↗️ 추세 일치</span>`;
+                            } else {
+                                badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border font-sans bg-rose-500/20 text-rose-300 border-rose-500/30">❌ 빗나감</span>`;
+                            }
                         } else {
                             badgeHtml = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700/60 font-sans">⏳ 대기중</span>`;
                         }
@@ -2519,7 +2632,7 @@
                                 <td class="py-2.5 px-3 whitespace-nowrap text-slate-400">${bPrice}</td>
                                 <td class="py-2.5 px-3 whitespace-nowrap text-blue-400 font-bold">${pPrice}</td>
                                 <td class="py-2.5 px-3 whitespace-nowrap font-bold ${isEvaluated ? 'text-white' : 'text-slate-500'}">${aPrice}</td>
-                                <td class="py-2.5 px-3 whitespace-nowrap text-center ${isHit ? 'text-emerald-400' : 'text-rose-400'} font-bold">${errPct}</td>
+                                <td class="py-2.5 px-3 whitespace-nowrap text-center font-bold text-slate-300">${errPct}</td>
                                 <td class="py-2.5 px-3 whitespace-nowrap text-center">${badgeHtml}</td>
                             </tr>
                         `;
